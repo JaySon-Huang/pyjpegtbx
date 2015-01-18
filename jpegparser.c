@@ -66,6 +66,10 @@ int save_from_rgb(
     char *filename,
     int width, int height, int quality,
     unsigned char *image_buffer);
+int save_from_dct(
+    char *filename,
+    char *orifilename,
+    PyObject *dctdata);
 
 PyObject *parse(char* filename, int isdct)
 {
@@ -223,7 +227,107 @@ int save_from_rgb(
     return 1;
 }
 
-int save_from_dct()
+typedef enum {
+    JCOPYOPT_NONE,      /* copy no optional markers */
+    JCOPYOPT_COMMENTS,  /* copy only comment (COM) markers */
+    JCOPYOPT_ALL        /* copy all optional markers */
+} JCOPY_OPTION;
+
+int save_from_dct(
+    char *filename,
+    char *orifilename,
+    PyObject *dctdata)
 {
+    FILE *infile=NULL, *outfile=NULL;
+    if (NULL == (infile=fopen(orifilename, "rb"))
+        || NULL == (outfile=fopen(filename, "wb")) ){
+        // 打开文件失败
+        return 0;
+    }
+    printf("input file:%s\n"
+        "output file:%s\n", orifilename,filename);
+    struct jpeg_decompress_struct srcinfo;
+    struct jpeg_compress_struct dstinfo;
+    struct error_mgr_t jsrcerr, jdsterr;
+
+    /* Initialize the JPEG decompression object with default error handling. */
+    srcinfo.err = jpeg_std_error(&jsrcerr.pub);
+    jsrcerr.pub.error_exit = my_error_exit;
+    if (setjmp(jsrcerr.setjmp_buffer)) {
+        // 设置jpeg异常处理
+        jpeg_destroy_decompress(&srcinfo);
+        jpeg_destroy_compress(&dstinfo);
+        fclose(infile);
+        fclose(outfile);
+        return 0;
+    }
+    /* Initialize the JPEG compression object with default error handling. */
+    dstinfo.err = jpeg_std_error(&jdsterr.pub);
+    jdsterr.pub.error_exit = my_error_exit;
+    if (setjmp(jdsterr.setjmp_buffer)) {
+        // 设置jpeg异常处理
+        jpeg_destroy_decompress(&srcinfo);
+        jpeg_destroy_compress(&dstinfo);
+        fclose(infile);
+        fclose(outfile);
+        return 0;
+    }
+
+    jpeg_create_decompress(&srcinfo);
+    jpeg_create_compress(&dstinfo);
+
+    jpeg_stdio_src(&srcinfo, infile);
+    JCOPY_OPTION copyoption = JCOPYOPT_ALL;
+    // FIXME: mark数据 
+    // jcopy_markers_setup(&srcinfo, copyoption);
+    (void) jpeg_read_header(&srcinfo, TRUE);
+
+    jvirt_barray_ptr * src_coef_arrays = jpeg_read_coefficients(&srcinfo);
+    /* Initialize destination compression parameters from source values */
+    jpeg_copy_critical_parameters(&srcinfo, &dstinfo);
+    jvirt_barray_ptr * dst_coef_arrays = src_coef_arrays;
+
+    PyObject *component, *coef;
+    PyObject *index;
+    for (int ci=0; ci!=3; ++ci){
+        jvirt_barray_ptr com_coef_array = dst_coef_arrays[ci];
+        JBLOCKARRAY block_array = com_coef_array->mem_buffer;
+
+        index = Py_BuildValue("i", ci);
+        component = PyDict_GetItem(dctdata, index);
+        Py_DECREF(index);
+
+        // component 是一个 list, 每一个元素为一个coef
+        Py_ssize_t len_component = PyList_GET_SIZE(component);
+        for (int row=0; row!=com_coef_array->rows_in_mem; ++row) {
+            for (int col=0; col!=com_coef_array->blocksperrow; ++col) {
+                // coef 存储64个DCT分量
+                coef = PyList_GetItem(component, row*(com_coef_array->blocksperrow) + col);
+                JCOEF *pcoef = block_array[row][col];
+                for (int i=0; i!=DCTSIZE2; ++i) {
+                    PyObject *pyval = PyList_GetItem(coef, i);
+                    int val = PyLong_AsLong(pyval);
+                    pcoef[i] = val;
+                }
+            }
+        }
+    }
+
+    // 关闭读文件
+    fclose(infile);
+
+    jpeg_stdio_dest(&dstinfo, outfile);
+    /* Start compressor (note no image data is actually written here) */
+    jpeg_write_coefficients(&dstinfo, dst_coef_arrays);
+    // FIXME: 保存marker信息
+    /* Copy to the output file any extra markers that we want to preserve */
+    // jcopy_markers_execute(&srcinfo, &dstinfo, copyoption);
+
+    // 释放资源
+    jpeg_finish_compress(&dstinfo);
+    jpeg_destroy_compress(&dstinfo);
+    (void) jpeg_finish_decompress(&srcinfo);
+    jpeg_destroy_decompress(&srcinfo);
+    fclose(outfile);
     return 1;
 }

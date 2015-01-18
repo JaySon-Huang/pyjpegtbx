@@ -9,6 +9,9 @@ _lib.parse.argtypes = [ctypes.c_char_p, ctypes.c_int]
 _lib.save_from_rgb.restype = ctypes.c_int
 _lib.save_from_rgb.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
 
+_lib.save_from_dct.restype = ctypes.c_int
+_lib.save_from_dct.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.py_object]
+
 J_COLOR_SPACE = {
     0:('UNKNOWN'  , None),      # error/unspecified
     1:('GRAYSCALE', ('Grey',)       ),       # monochrome
@@ -28,7 +31,6 @@ class JPEGImage:
     def __init__(self, filename):
         self.filename = filename
         self.data = None
-        self.dctdata = None
 
     @classmethod
     def open(cls, filename, get_rawdct=False):
@@ -45,7 +47,12 @@ class JPEGImage:
 
     def save(self, filename, quality=75):
         if self.isdct:
-            raise NotImplementedError()
+            print('in dct save')
+            _lib.save_from_dct(
+                filename.encode(encoding='utf-8'),
+                self.filename.encode(encoding='utf-8'),
+                self.data
+            )
         else :
             import array
             rgb_data = b''
@@ -68,10 +75,20 @@ if __name__ == "__main__":
     # for x in range(len(l)):
     #     assert img.data[x] == l[x], "Err"
 
-    # 修改后重新存储rgb数据
-    newdata = []
-    for rgb in img.data:
-        newdata.append((rgb[0],rgb[1],0))
-    img.setdata(newdata)
+    # # 修改后重新存储rgb数据
+    # newdata = []
+    # for rgb in img.data:
+    #     newdata.append((rgb[0],rgb[1],0))
+    # img.setdata(newdata)
+    # img.save('oo.jpg')
+
+    # 修改后重新存储dct数据
+    img = JPEGImage.open(filename, get_rawdct=True)
+    for key,val in img.data.items():
+        print(key,len(val))
+        for coef in val:
+            for i in range(1,8):
+                coef[i] = 0
     img.save('oo.jpg')
+
 
