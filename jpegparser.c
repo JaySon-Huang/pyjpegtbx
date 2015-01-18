@@ -62,6 +62,10 @@ static PyObject *__getdct(
     struct jpeg_decompress_struct *cinfo);
 static PyObject *__getdata(
     struct jpeg_decompress_struct *cinfo);
+int save_from_rgb(
+    char *filename,
+    int width, int height, int quality,
+    unsigned char *image_buffer);
 
 PyObject *parse(char* filename, int isdct)
 {
@@ -167,4 +171,59 @@ static PyObject *__getdata(
         }
     }
     return data;
+}
+
+int save_from_rgb(
+    char *filename,
+    int width, int height, int quality,
+    unsigned char *image_buffer)
+{
+    FILE *outfile = NULL;
+    if (NULL == (outfile=fopen(filename, "wb"))){
+        // 打开文件失败
+        return 0;
+    }
+
+    struct jpeg_compress_struct cinfo;
+    struct error_mgr_t jerr;
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = my_error_exit;
+    if (setjmp(jerr.setjmp_buffer)) {
+        // 设置jpeg异常处理
+        jpeg_destroy_compress(&cinfo);
+        fclose(outfile);
+        return 0;
+    }
+    jpeg_create_compress(&cinfo);
+    jpeg_stdio_dest(&cinfo, outfile);
+
+    // 设置图像高宽
+    cinfo.image_width = width;
+    cinfo.image_height = height;
+    // 设置输入为rgb数据流
+    cinfo.input_components = 3;
+    cinfo.in_color_space = JCS_RGB;
+    // 设置默认参数
+    jpeg_set_defaults(&cinfo);
+    // 设置质量因子
+    jpeg_set_quality(&cinfo, quality, TRUE);
+    jpeg_start_compress(&cinfo, TRUE);
+
+    int row_stride = width * 3;
+    JSAMPROW row_pointer[1];
+    while (cinfo.next_scanline < cinfo.image_height) {
+        row_pointer[0] = & image_buffer[cinfo.next_scanline * row_stride];
+        (void) jpeg_write_scanlines(&cinfo, row_pointer, 1);
+    }
+
+    jpeg_finish_compress(&cinfo);
+    fclose(outfile);
+    jpeg_destroy_compress(&cinfo);
+
+    return 1;
+}
+
+int save_from_dct()
+{
+    return 1;
 }

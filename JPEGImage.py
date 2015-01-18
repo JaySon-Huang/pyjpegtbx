@@ -6,16 +6,18 @@ _lib = ctypes.CDLL("./libjpegtbx.so")
 _lib.parse.restype = ctypes.py_object
 _lib.parse.argtypes = [ctypes.c_char_p, ctypes.c_int]
 
+_lib.save_from_rgb.restype = ctypes.c_int
+_lib.save_from_rgb.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
 
 J_COLOR_SPACE = {
-    0:'UNKNOWN',    # error/unspecified
-    1:'GRAYSCALE',  # monochrome
-    2:'RGB',        # red/green/blue, standard RGB (sRGB)
-    3:'YCbCr',      # Y/Cb/Cr (also known as YUV), standard YCC
-    4:'CMYK',       # C/M/Y/K
-    5:'YCCK',       # Y/Cb/Cr/K
-    6:'BG_RGB',     # big gamut red/green/blue, bg-sRGB
-    7:'BG_YCC',     # big gamut Y/Cb/Cr, bg-sYCC
+    0:('UNKNOWN'  , None),      # error/unspecified
+    1:('GRAYSCALE', ('Grey',)       ),       # monochrome
+    2:('RGB'      , ('R','G','B')   ),       # red/green/blue, standard RGB (sRGB)
+    3:('YCbCr'    , ('Y','Cb','Cr') ),       # Y/Cb/Cr (also known as YUV), standard YCC
+    4:('CMYK'     , ('C','M','Y','K')   ),   # C/M/Y/K
+    5:('YCCK'     , ('Y','Cb','Cr','K') ),   # Y/Cb/Cr/K
+    6:('BG_RGB'   , None),      # big gamut red/green/blue,) bg-sRGB
+    7:('BG_YCC'   , None),      # big gamut Y/Cb/Cr, bg-sYCC
 }
 
 class JPEGImage:
@@ -31,29 +33,45 @@ class JPEGImage:
     @classmethod
     def open(cls, filename, get_rawdct=False):
         img = cls(filename)
-        # cfilename = ctypes.create_string_buffer(filename.encode(encoding="utf-8"))
-        ret = _lib.parse(filename.encode(encoding="utf-8"), get_rawdct)
+        ret = _lib.parse(filename.encode(encoding='utf-8'), get_rawdct)
         img.size = ret['size']
         img._color_space = ret['color_space']
         img.data = ret['data']
-        if get_rawdct:
-            pass
-        else:
-            pass
+        img.isdct = get_rawdct
         return img
 
-    def save(self, filename):
-        raise NotImplementedError()
+    def setdata(self, data):
+        self.data = data
+
+    def save(self, filename, quality=75):
+        if self.isdct:
+            raise NotImplementedError()
+        else :
+            import array
+            rgb_data = b''
+            for rgb in self.data:
+                rgb_data += array.array('B', rgb)
+            ok = _lib.save_from_rgb(
+                    filename.encode(encoding='utf-8'),
+                    self.size[0], self.size[1], quality,
+                    rgb_data
+                )
 
 if __name__ == "__main__":
     filename = "lfs.jpg"
     img = JPEGImage.open(filename)
 
-    from PIL import Image
-    img2 = Image.open(filename)
-    l = list(img2.getdata())
+    # # 利用PIL对比得到的数据是否有误
+    # from PIL import Image
+    # img2 = Image.open(filename)
+    # l = list(img2.getdata())
+    # for x in range(len(l)):
+    #     assert img.data[x] == l[x], "Err"
 
-    for x in range(len(l)):
-        if img.data[x] != l[x]:
-            print("Err")
+    # 修改后重新存储rgb数据
+    newdata = []
+    for rgb in img.data:
+        newdata.append((rgb[0],rgb[1],0))
+    img.setdata(newdata)
+    img.save('oo.jpg')
 
