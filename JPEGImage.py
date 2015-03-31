@@ -10,7 +10,16 @@ _lib.save_from_rgb.restype = ctypes.c_int
 _lib.save_from_rgb.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
 
 _lib.save_from_dct.restype = ctypes.c_int
-_lib.save_from_dct.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.py_object]
+_lib.save_from_dct.argtypes = [
+    ctypes.c_char_p, ctypes.c_char_p, # filename
+    ctypes.py_object, # self.data, 
+    ctypes.c_int, ctypes.c_int, ctypes.c_int, # self.size, self._color_space
+    ctypes.c_int, ctypes.c_int, # self.progressive_mode, self.optimize_coding
+    ctypes.py_object, # self.comp_infos
+    ctypes.py_object, # self.quant_tbls
+    ctypes.py_object, # self.ac_huff_tables
+    ctypes.py_object, # self.dc_huff_tables
+]
 
 J_COLOR_SPACE = {
     0:('UNKNOWN'  , None),      # error/unspecified
@@ -39,15 +48,17 @@ class JPEGImage:
 
         # for debug
         for key, val in ret.items():
-            if key not in  ('data', 'ac_huff_tables', 'dc_huff_tables', 'quant_tbls') :
-                print(key,val)
+            #if key not in  ('data', 'ac_huff_tables', 'dc_huff_tables', 'quant_tbls') :
+            #    print(key,val)
+            if key == "data":
+                print(key, len(val))
 
         img.isdct = get_rawdct
 
         img.size = ret['size']
         img._color_space = ret['color_space']
         img.progressive_mode = ret['progressive_mode']
-        
+
         img.data = ret['data']
         img.comp_infos = ret['comp_infos']
         img.quant_tbls = ret['quant_tbls']
@@ -65,7 +76,13 @@ class JPEGImage:
             _lib.save_from_dct(
                 filename.encode(encoding='utf-8'),
                 self.filename.encode(encoding='utf-8'),
-                self.data
+                self.data, 
+                self.size[0], self.size[1], self._color_space,
+                self.progressive_mode, self.optimize_coding,
+                self.comp_infos,
+                self.quant_tbls,
+                self.ac_huff_tables,
+                self.dc_huff_tables
             )
         else :
             import array
@@ -97,12 +114,21 @@ if __name__ == "__main__":
     # img.save('oo.jpg')
 
     # 修改后重新存储dct数据
-    img = JPEGImage.open(filename, get_rawdct=True)
-    for key,val in img.data.items():
-        print(key,len(val))
-        for coef in val:
-            for i in range(48,64):
-                coef[i] = 0
-    img.save('oo.jpg')
+    # img = JPEGImage.open(filename, get_rawdct=True)
+    # for key,val in img.data.items():
+    #     print(key,len(val))
+    #     for coef in val:
+    #         for i in range(48,64):
+    #             coef[i] = 0
+    # img.save('oo.jpg')
 
-
+    files = [ "zhou.jpg", "zhou_cut.jpg", "lfs.jpg", "tic.jpg",]
+    # files = ["lfs.jpg"]
+    for filename in files:
+        img = JPEGImage.open(filename, get_rawdct=True)
+        for key,val in img.data.items():
+            print(key, val[0])
+            for coef in val:
+                for i in range(48, 64):
+                    coef[i] = 0
+        img.save(filename.split(".")[0]+"_saved.jpg")

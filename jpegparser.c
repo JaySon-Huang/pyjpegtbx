@@ -7,6 +7,16 @@
 
 #include <Python/Python.h>
 
+#define MIN(a,b) (a)<(b)?(a):(b)
+
+long jround_up (long a, long b)
+/* Compute a rounded up to next multiple of b, ie, ceil(a/b)*b */
+/* Assumes a >= 0, b > 0 */
+{
+  a += b - 1L;
+  return a - (a % b);
+}
+
 // 必要的struct
 typedef struct backing_store_struct * backing_store_ptr;
 typedef struct backing_store_struct {
@@ -68,10 +78,17 @@ int save_from_rgb(
     char *filename,
     int width, int height, int quality,
     unsigned char *image_buffer);
+
 int save_from_dct(
     char *filename,
     char *orifilename,
-    PyObject *dctdata);
+    PyObject *dctdata,
+    int width, int height, int color_space,
+    int progressive_mode, int optimize_coding,
+    PyObject *comp_infos,
+    PyObject *quant_tbls,
+    PyObject *ac_huff_tables,
+    PyObject *dc_huff_tables);
 
 PyObject *parse(char* filename, int isdct)
 {
@@ -370,96 +387,262 @@ typedef enum {
 int save_from_dct(
     char *filename,
     char *orifilename,
-    PyObject *dctdata)
+    PyObject *dctdata,
+    int width, int height, int color_space,
+    int progressive_mode, int optimize_coding,
+    PyObject *comp_infos,
+    PyObject *quant_tbls,
+    PyObject *ac_huff_tables,
+    PyObject *dc_huff_tables)
 {
-    FILE *infile=NULL, *outfile=NULL;
-    if (NULL == (infile=fopen(orifilename, "rb"))
-        || NULL == (outfile=fopen(filename, "wb")) ){
-        // 打开文件失败
+    char err_msg[1024];
+    memset(err_msg, 0, sizeof(err_msg));
+
+    FILE *outfile;
+    if (NULL == (outfile=fopen(filename, "wb"))){
+        printf("File '%s' Open Failed!\n", filename);
         return 0;
     }
-    struct jpeg_decompress_struct srcinfo;
-    struct jpeg_compress_struct dstinfo;
-    struct error_mgr_t jsrcerr, jdsterr;
+    struct jpeg_compress_struct cinfo;
+    struct error_mgr_t jerr;
 
-    // Initialize the JPEG decompression object with default error handling.
-    srcinfo.err = jpeg_std_error(&jsrcerr.pub);
-    jsrcerr.pub.error_exit = my_error_exit;
-    if (setjmp(jsrcerr.setjmp_buffer)) {
-        // 设置jpeg异常处理
-        jpeg_destroy_decompress(&srcinfo);
-        jpeg_destroy_compress(&dstinfo);
-        fclose(infile);
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = my_error_exit;
+    if (setjmp(jerr.setjmp_buffer)) {
+        // handle libjpeg error
+        (jerr.pub.format_message)((j_common_ptr)&cinfo, err_msg);
+        printf("Error happened while handling jpeg data.\n");
+        printf("libjpeg(Library errors): '%s'\n", err_msg);
+        printf("Global state: %d\n", cinfo.global_state);
+
+        jpeg_destroy_compress(&cinfo);
         fclose(outfile);
-        return 0;
-    }
-    // Initialize the JPEG compression object with default error handling.
-    dstinfo.err = jpeg_std_error(&jdsterr.pub);
-    jdsterr.pub.error_exit = my_error_exit;
-    if (setjmp(jdsterr.setjmp_buffer)) {
-        // 设置jpeg异常处理
-        jpeg_destroy_decompress(&srcinfo);
-        jpeg_destroy_compress(&dstinfo);
-        fclose(infile);
-        fclose(outfile);
+
         return 0;
     }
 
-    jpeg_create_decompress(&srcinfo);
-    jpeg_create_compress(&dstinfo);
+    jpeg_create_compress(&cinfo);
+    jpeg_stdio_dest(&cinfo, outfile);
 
-    jpeg_stdio_src(&srcinfo, infile);
-    JCOPY_OPTION copyoption = JCOPYOPT_ALL;
-    // FIXME: mark数据 
-    // jcopy_markers_setup(&srcinfo, copyoption);
-    (void) jpeg_read_header(&srcinfo, TRUE);
+    // set fields of cinfo 
+    cinfo.image_width = width;
+    cinfo.image_height = height;
+    cinfo.jpeg_color_space = color_space;
+    cinfo.input_components = PyList_Size(comp_infos);
+    // printf("cinfo.input_components: %d\n", cinfo.input_components);
+    cinfo.optimize_coding = optimize_coding;
 
-    jvirt_barray_ptr * src_coef_arrays = jpeg_read_coefficients(&srcinfo);
-    // Initialize destination compression parameters from source values
-    jpeg_copy_critical_parameters(&srcinfo, &dstinfo);
-    jvirt_barray_ptr * dst_coef_arrays = src_coef_arrays;
+    jpeg_set_defaults(&cinfo);
 
-    PyObject *component, *coef;
-    PyObject *index;
-    for (int ci=0; ci!=3; ++ci){
-        jvirt_barray_ptr com_coef_array = dst_coef_arrays[ci];
-        JBLOCKARRAY block_array = com_coef_array->mem_buffer;
+    // these should be cacl from above params....
+    cinfo.in_color_space = 3;
+    cinfo.num_components = cinfo.input_components;
+    cinfo.jpeg_width = cinfo.image_width;
+    cinfo.jpeg_height = cinfo.image_height;
 
-        index = Py_BuildValue("i", ci);
-        component = PyDict_GetItem(dctdata, index);
-        Py_DECREF(index);
+    if ( progressive_mode == 1){
+        jpeg_simple_progression(&cinfo);
+    }
 
-        // component 是一个 list, 每一个元素为一个coef
-        Py_ssize_t len_component = PyList_GET_SIZE(component);
-        for (int row=0; row!=com_coef_array->rows_in_mem; ++row) {
-            for (int col=0; col!=com_coef_array->blocksperrow; ++col) {
-                // coef 存储64个DCT分量
-                coef = PyList_GetItem(component, row*(com_coef_array->blocksperrow) + col);
-                JCOEF *pcoef = block_array[row][col];
-                for (int i=0; i!=DCTSIZE2; ++i) {
-                    PyObject *pyval = PyList_GetItem(coef, i);
-                    int val = PyLong_AsLong(pyval);
-                    pcoef[i] = val;
+    int min_h=16, min_v=16;
+    for (int i=0; i!=cinfo.num_components; ++i){
+        PyObject *component = PyList_GetItem(comp_infos, i);
+
+        jpeg_component_info *compptr = &cinfo.comp_info[i];
+        compptr->component_index = i;
+        compptr->component_id = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "component_id")));
+        compptr->quant_tbl_no = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "quant_tbl_no")));
+        compptr->ac_tbl_no = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "ac_tbl_no")));
+        compptr->dc_tbl_no = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "dc_tbl_no")));
+        compptr->h_samp_factor = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "h_samp_factor")));
+        compptr->v_samp_factor = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "v_samp_factor")));
+
+        compptr->DCT_h_scaled_size = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "DCT_h_scaled_size")));
+        compptr->DCT_v_scaled_size = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "DCT_v_scaled_size")));
+        compptr->width_in_blocks = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "width_in_blocks")));
+        compptr->height_in_blocks = PyLong_AsLong(
+            PyDict_GetItem(component, Py_BuildValue("s", "height_in_blocks")));
+
+        min_h = MIN(min_h, compptr->DCT_h_scaled_size);
+        min_v = MIN(min_v, compptr->DCT_v_scaled_size);
+    }
+    // these params...
+    cinfo.min_DCT_h_scaled_size = min_h;
+    cinfo.min_DCT_v_scaled_size = min_v;
+
+    jvirt_barray_ptr *coef_arrays = (jvirt_barray_ptr *)
+        (cinfo.mem->alloc_small)(
+            (j_common_ptr)&cinfo, JPOOL_IMAGE,
+            sizeof(jvirt_barray_ptr)*cinfo.num_components
+        );
+
+    jpeg_component_info *compptr;
+    for (int ci=0; ci!=cinfo.num_components; ++ci){
+        compptr = &cinfo.comp_info[ci];
+        coef_arrays[ci] = (cinfo.mem->request_virt_barray)
+            ((j_common_ptr)&cinfo, JPOOL_IMAGE, TRUE,
+             (JDIMENSION) jround_up((long) compptr->width_in_blocks, (long)compptr->h_samp_factor),
+             (JDIMENSION) jround_up((long) compptr->width_in_blocks, (long)compptr->h_samp_factor),
+             (JDIMENSION) compptr->v_samp_factor
+            );
+    }
+
+    printf("block size: %d -> %d\n", cinfo.block_size, cinfo.min_DCT_h_scaled_size);
+    for (int ci=0;ci!=cinfo.num_components; ++ci){
+        printf("index, id, h_samp, v_samp: %d, %d, %d, %d\n",
+            cinfo.comp_info[ci].component_index,
+            cinfo.comp_info[ci].component_id,
+            cinfo.comp_info[ci].h_samp_factor,
+            cinfo.comp_info[ci].v_samp_factor);
+        printf("DCT_h_scaled, DCT_v_scaled: %d, %d\n",
+            cinfo.comp_info[ci].DCT_h_scaled_size,
+            cinfo.comp_info[ci].DCT_v_scaled_size);
+        printf("quant_tbl, ac_tbl, dc_tbl: %d, %d, %d\n",
+            cinfo.comp_info[ci].quant_tbl_no,
+            cinfo.comp_info[ci].ac_tbl_no,
+            cinfo.comp_info[ci].dc_tbl_no);
+        printf("blocks height, width: %d, %d\n",
+            cinfo.comp_info[ci].height_in_blocks,
+            cinfo.comp_info[ci].width_in_blocks);
+    }
+
+    // realize virtual block arrays
+    printf("before jpeg_write_coefficients\n");
+    jpeg_write_coefficients(&cinfo, coef_arrays);
+    printf("after jpeg_write_coefficients\n");
+
+    printf("block size: %d -> %d\n", cinfo.block_size, cinfo.min_DCT_h_scaled_size);
+    for (int ci=0;ci!=cinfo.num_components; ++ci){
+        printf("index, id, h_samp, v_samp: %d, %d, %d, %d\n",
+            cinfo.comp_info[ci].component_index,
+            cinfo.comp_info[ci].component_id,
+            cinfo.comp_info[ci].h_samp_factor,
+            cinfo.comp_info[ci].v_samp_factor);
+        printf("DCT_h_scaled, DCT_v_scaled: %d, %d\n",
+            cinfo.comp_info[ci].DCT_h_scaled_size,
+            cinfo.comp_info[ci].DCT_v_scaled_size);
+        printf("quant_tbl, ac_tbl, dc_tbl: %d, %d, %d\n",
+            cinfo.comp_info[ci].quant_tbl_no,
+            cinfo.comp_info[ci].ac_tbl_no,
+            cinfo.comp_info[ci].dc_tbl_no);
+        printf("blocks height, width: %d, %d\n",
+            cinfo.comp_info[ci].height_in_blocks,
+            cinfo.comp_info[ci].width_in_blocks);
+    }
+    
+    // populate the array with the DCT coefficients
+    printf("before getCoefArrays\n");
+    for (int i=0; i!=cinfo.num_components; ++i){
+        PyObject *component, *coef;
+        component = PyDict_GetItem(dctdata, Py_BuildValue("i", i));
+        compptr = &cinfo.comp_info[i];
+        printf("compptr[%d]: %p\n", i, compptr);
+        JBLOCKARRAY blockArray = coef_arrays[i]->mem_buffer;
+        for(int row=0; row!=compptr->height_in_blocks; ++row){
+            for (int col=0; col!=compptr->width_in_blocks; ++col){
+                coef = PyList_GetItem(component, 
+                        row*(compptr->width_in_blocks)+col);
+                for (int j=0; j!=DCTSIZE2; ++j){
+                    blockArray[row][col][j] = PyLong_AsLong(
+                        PyList_GetItem(coef, j));
+                    if (row == col && row == 0)
+                        printf("[%p]:%d,",
+                            &((coef_arrays[i]->mem_buffer)[row][col][j]),
+                            (coef_arrays[i]->mem_buffer)[row][col][j]);
                 }
+                if (row == col && row == 0)
+                    printf("\n");
+            }
+        }
+    }
+    printf("after getCoefArrays\n");
+
+    // get the quantization tables
+    Py_ssize_t sz_qtbls = PyList_Size(quant_tbls);
+    for (Py_ssize_t i=0; i!=NUM_QUANT_TBLS; ++i){
+        if (i < sz_qtbls){
+            PyObject *quant_tbl = PyList_GetItem(quant_tbls, i);
+            if (NULL == cinfo.quant_tbl_ptrs[i]){
+                cinfo.quant_tbl_ptrs[i] = 
+                    jpeg_alloc_quant_table((j_common_ptr)&cinfo);
+                printf("New qtbl:[%zd]\n", i);
+            }
+            PyObject *quantval = PyDict_GetItem(quant_tbl, Py_BuildValue("s", "quantval"));
+            for(int j=0; j!=DCTSIZE2; ++j){
+                cinfo.quant_tbl_ptrs[i]->quantval[j] = PyLong_AsLong(
+                    PyList_GetItem(quantval, j));
+            }
+        }else{
+            cinfo.quant_tbl_ptrs[i] = NULL;
+        }
+    }
+
+    // Get the AC and DC huffman tables but check for optimized coding first
+    if (cinfo.optimize_coding == FALSE){
+        Py_ssize_t sz_hufftbls;
+        PyObject *huff_tbl, *counts, *symbols;
+
+        sz_hufftbls = PyList_Size(ac_huff_tables);
+        for (Py_ssize_t i=0; i!=NUM_HUFF_TBLS; ++i){
+            if (i < sz_hufftbls){
+                huff_tbl = PyList_GetItem(ac_huff_tables, i);
+                if (NULL == cinfo.ac_huff_tbl_ptrs[i]){
+                    cinfo.ac_huff_tbl_ptrs[i] = 
+                        jpeg_alloc_huff_table((j_common_ptr)&cinfo);
+                }
+                counts = PyDict_GetItem(huff_tbl, Py_BuildValue("s", "counts"));
+                for (int j=0; j!=16; ++j){
+                    cinfo.ac_huff_tbl_ptrs[i]->bits[j+1] = PyLong_AsLong(
+                        PyList_GetItem(counts, j));
+                }
+                symbols = PyDict_GetItem(huff_tbl, Py_BuildValue("s", "symbols"));
+                for (int j=0; j!=256; ++j){
+                    cinfo.ac_huff_tbl_ptrs[i]->huffval[j] = PyLong_AsLong(
+                        PyList_GetItem(symbols, j));
+                }
+            }else{
+                cinfo.ac_huff_tbl_ptrs[i] = NULL;
+            }
+        }
+
+        sz_hufftbls = PyList_Size(dc_huff_tables);
+        for (Py_ssize_t i=0; i!=NUM_HUFF_TBLS; ++i){
+            if (i < sz_hufftbls){
+                huff_tbl = PyList_GetItem(dc_huff_tables, i);
+                if (NULL == cinfo.dc_huff_tbl_ptrs[i]){
+                    cinfo.dc_huff_tbl_ptrs[i] = 
+                        jpeg_alloc_huff_table((j_common_ptr)&cinfo);
+                }
+                counts = PyDict_GetItem(huff_tbl, Py_BuildValue("s", "counts"));
+                for (int j=0; j!=16; ++j){
+                    cinfo.dc_huff_tbl_ptrs[i]->bits[j+1] = PyLong_AsLong(
+                        PyList_GetItem(counts, j));
+                }
+                symbols = PyDict_GetItem(huff_tbl, Py_BuildValue("s", "symbols"));
+                for (int j=0; j!=256; ++j){
+                    cinfo.dc_huff_tbl_ptrs[i]->huffval[j] = PyLong_AsLong(
+                        PyList_GetItem(symbols, j));
+                }
+            }else{
+                cinfo.dc_huff_tbl_ptrs[i] = NULL;
             }
         }
     }
 
-    // 关闭读文件
-    fclose(infile);
+    // TODO: copy markers
 
-    jpeg_stdio_dest(&dstinfo, outfile);
-    // Start compressor (note no image data is actually written here)
-    jpeg_write_coefficients(&dstinfo, dst_coef_arrays);
-    // FIXME: 保存marker信息
-    // Copy to the output file any extra markers that we want to preserve
-    // jcopy_markers_execute(&srcinfo, &dstinfo, copyoption);
-
-    // 释放资源
-    jpeg_finish_compress(&dstinfo);
-    jpeg_destroy_compress(&dstinfo);
-    (void) jpeg_finish_decompress(&srcinfo);
-    jpeg_destroy_decompress(&srcinfo);
+    // release resources
+    jpeg_finish_compress(&cinfo);
+    jpeg_destroy_compress(&cinfo);
     fclose(outfile);
     return 1;
 }
