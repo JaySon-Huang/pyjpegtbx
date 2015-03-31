@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <jpeglib.h>
 #include <setjmp.h>
-#include <Python/Python.h>
 #include <assert.h>
+
+#include <jpeglib.h>
+
+#include <Python/Python.h>
 
 // 必要的struct
 typedef struct backing_store_struct * backing_store_ptr;
@@ -97,13 +99,145 @@ PyObject *parse(char* filename, int isdct)
     (void) jpeg_read_header(&cinfo, TRUE);
 
     PyObject *data = PyDict_New();
+    // 设置 size:(width, height)
     PyDict_SetItem(data, 
         Py_BuildValue("s", "size"), 
         Py_BuildValue("(ii)", cinfo.image_width, cinfo.image_height));
+    // 设置 color_space
     PyDict_SetItem(data, 
         Py_BuildValue("s", "color_space"), 
         Py_BuildValue("i", cinfo.jpeg_color_space));
+    // 设置 progressive_mode
+    PyDict_SetItem(data,
+        Py_BuildValue("s", "progressive_mode"),
+        Py_BuildValue("i", cinfo.progressive_mode));
 
+    // 设置 ComponentsInfo
+    PyObject *comp_infos = PyList_New(cinfo.num_components);
+    PyObject *comp;
+    for (int i=0; i!=cinfo.num_components; ++i){
+        comp = PyDict_New();
+        jpeg_component_info *c_comp = &cinfo.comp_info[i];
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "component_id"),
+            Py_BuildValue("i", c_comp->component_id));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "h_samp_factor"),
+            Py_BuildValue("i", c_comp->h_samp_factor));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "v_samp_factor"),
+            Py_BuildValue("i", c_comp->v_samp_factor));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "quant_tbl_no"),
+            Py_BuildValue("i", c_comp->quant_tbl_no));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "dc_tbl_no"),
+            Py_BuildValue("i", c_comp->dc_tbl_no));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "ac_tbl_no"),
+            Py_BuildValue("i", c_comp->ac_tbl_no));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "height_in_blocks"),
+            Py_BuildValue("i", c_comp->height_in_blocks));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "width_in_blocks"),
+            Py_BuildValue("i", c_comp->width_in_blocks));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "DCT_h_scaled_size"),
+            Py_BuildValue("i", c_comp->DCT_h_scaled_size));
+        PyDict_SetItem(comp,
+            Py_BuildValue("s", "DCT_v_scaled_size"),
+            Py_BuildValue("i", c_comp->DCT_v_scaled_size));
+
+        PyList_SetItem(comp_infos, i, comp);
+    }
+
+    PyDict_SetItem(data,
+        Py_BuildValue("s", "comp_infos"),
+        comp_infos);
+
+    // 设置 Quantization Tables
+    PyObject *quant_tbls = PyList_New(0);
+    for (int i=0; i!=NUM_QUANT_TBLS; ++i){
+        // JQUANT_TBL *
+        if (cinfo.quant_tbl_ptrs[i] == NULL){continue;}
+        PyObject *quant_tbl = PyDict_New();
+        PyObject *quantval = PyList_New(DCTSIZE2);
+        for (int j=0; j!=DCTSIZE2; ++j){
+            PyList_SetItem(quantval, j, 
+                Py_BuildValue("i", cinfo.quant_tbl_ptrs[i]->quantval[j])
+            );
+        }
+        PyDict_SetItem(quant_tbl,
+            Py_BuildValue("s", "quantval"),
+            quantval);
+        PyList_Append(quant_tbls, quant_tbl);
+    }
+    PyDict_SetItem(data,
+        Py_BuildValue("s", "quant_tbls"),
+        quant_tbls);
+
+    // 设置 Huffman Tables
+    PyObject *dc_huff_tables = PyList_New(0);
+    PyObject *ac_huff_tables = PyList_New(0);
+    PyObject *huff_table, *counts, *symbols;
+    for (int i=0; i!= NUM_HUFF_TBLS; ++i){
+        // dc
+        if (cinfo.dc_huff_tbl_ptrs[i] != NULL){
+            huff_table = PyDict_New();
+
+            counts = PyList_New(16);
+            for (int j=0; j!=16; ++j){
+                PyList_SetItem(counts, j, 
+                    Py_BuildValue("i", cinfo.dc_huff_tbl_ptrs[i]->bits[j+1]));
+            }
+            PyDict_SetItem(huff_table, 
+                Py_BuildValue("s", "counts"),
+                counts);
+            symbols = PyList_New(256);
+            for (int j=0; j!= 256; ++j){
+                PyList_SetItem(symbols, j, 
+                    Py_BuildValue("i", cinfo.dc_huff_tbl_ptrs[i]->huffval[j]));
+            }
+            PyDict_SetItem(huff_table, 
+                Py_BuildValue("s", "symbols"),
+                symbols);
+
+            PyList_Append(dc_huff_tables, huff_table);
+        }
+
+        // ac
+        if (cinfo.ac_huff_tbl_ptrs[i] != NULL){
+            huff_table = PyDict_New();
+
+            counts = PyList_New(16);
+            for (int j=0; j!=16; ++j){
+                PyList_SetItem(counts, j, 
+                    Py_BuildValue("i", cinfo.ac_huff_tbl_ptrs[i]->bits[j+1]));
+            }
+            PyDict_SetItem(huff_table, 
+                Py_BuildValue("s", "counts"),
+                counts);
+            symbols = PyList_New(256);
+            for (int j=0; j!= 256; ++j){
+                PyList_SetItem(symbols, j, 
+                    Py_BuildValue("i", cinfo.ac_huff_tbl_ptrs[i]->huffval[j]));
+            }
+            PyDict_SetItem(huff_table, 
+                Py_BuildValue("s", "symbols"),
+                symbols);
+
+            PyList_Append(ac_huff_tables, huff_table);
+        }
+    }
+    PyDict_SetItem(data, 
+        Py_BuildValue("s", "dc_huff_tables"),
+        dc_huff_tables);
+    PyDict_SetItem(data, 
+        Py_BuildValue("s", "ac_huff_tables"),
+        ac_huff_tables);
+
+    // DCT数据 or RGB数据
     PyObject *rawdata = NULL;
     if ( !isdct ) {
         rawdata = __getdata(&cinfo);
@@ -244,13 +378,11 @@ int save_from_dct(
         // 打开文件失败
         return 0;
     }
-    printf("input file:%s\n"
-        "output file:%s\n", orifilename,filename);
     struct jpeg_decompress_struct srcinfo;
     struct jpeg_compress_struct dstinfo;
     struct error_mgr_t jsrcerr, jdsterr;
 
-    /* Initialize the JPEG decompression object with default error handling. */
+    // Initialize the JPEG decompression object with default error handling.
     srcinfo.err = jpeg_std_error(&jsrcerr.pub);
     jsrcerr.pub.error_exit = my_error_exit;
     if (setjmp(jsrcerr.setjmp_buffer)) {
@@ -261,7 +393,7 @@ int save_from_dct(
         fclose(outfile);
         return 0;
     }
-    /* Initialize the JPEG compression object with default error handling. */
+    // Initialize the JPEG compression object with default error handling.
     dstinfo.err = jpeg_std_error(&jdsterr.pub);
     jdsterr.pub.error_exit = my_error_exit;
     if (setjmp(jdsterr.setjmp_buffer)) {
@@ -283,7 +415,7 @@ int save_from_dct(
     (void) jpeg_read_header(&srcinfo, TRUE);
 
     jvirt_barray_ptr * src_coef_arrays = jpeg_read_coefficients(&srcinfo);
-    /* Initialize destination compression parameters from source values */
+    // Initialize destination compression parameters from source values
     jpeg_copy_critical_parameters(&srcinfo, &dstinfo);
     jvirt_barray_ptr * dst_coef_arrays = src_coef_arrays;
 
@@ -317,10 +449,10 @@ int save_from_dct(
     fclose(infile);
 
     jpeg_stdio_dest(&dstinfo, outfile);
-    /* Start compressor (note no image data is actually written here) */
+    // Start compressor (note no image data is actually written here)
     jpeg_write_coefficients(&dstinfo, dst_coef_arrays);
     // FIXME: 保存marker信息
-    /* Copy to the output file any extra markers that we want to preserve */
+    // Copy to the output file any extra markers that we want to preserve
     // jcopy_markers_execute(&srcinfo, &dstinfo, copyoption);
 
     // 释放资源

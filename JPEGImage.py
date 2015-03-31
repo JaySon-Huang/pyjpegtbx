@@ -27,7 +27,7 @@ class JPEGImage:
     # size => (width, height)
     # color_space 
     # quant_tbl => a list of quant table
-    # huff_tbl_ptrs => {'dc':[[][]], 'ac':[[][]]}
+    # huff_tbl_ptrs => {'dc':[[],...,[],[]], 'ac':[[],...,[],[]]}
     def __init__(self, filename):
         self.filename = filename
         self.data = None
@@ -36,10 +36,25 @@ class JPEGImage:
     def open(cls, filename, get_rawdct=False):
         img = cls(filename)
         ret = _lib.parse(filename.encode(encoding='utf-8'), get_rawdct)
+
+        # for debug
+        for key, val in ret.items():
+            if key not in  ('data', 'ac_huff_tables', 'dc_huff_tables', 'quant_tbls') :
+                print(key,val)
+
+        img.isdct = get_rawdct
+
         img.size = ret['size']
         img._color_space = ret['color_space']
+        img.progressive_mode = ret['progressive_mode']
+        
         img.data = ret['data']
-        img.isdct = get_rawdct
+        img.comp_infos = ret['comp_infos']
+        img.quant_tbls = ret['quant_tbls']
+        img.ac_huff_tables = ret['ac_huff_tables']
+        img.dc_huff_tables = ret['dc_huff_tables']
+
+        img.optimize_coding = False
         return img
 
     def setdata(self, data):
@@ -47,7 +62,6 @@ class JPEGImage:
 
     def save(self, filename, quality=75):
         if self.isdct:
-            print('in dct save')
             _lib.save_from_dct(
                 filename.encode(encoding='utf-8'),
                 self.filename.encode(encoding='utf-8'),
@@ -66,7 +80,7 @@ class JPEGImage:
 
 if __name__ == "__main__":
     filename = "lfs.jpg"
-    img = JPEGImage.open(filename)
+    # img = JPEGImage.open(filename)
 
     # # 利用PIL对比得到的数据是否有误
     # from PIL import Image
@@ -87,7 +101,7 @@ if __name__ == "__main__":
     for key,val in img.data.items():
         print(key,len(val))
         for coef in val:
-            for i in range(1,8):
+            for i in range(48,64):
                 coef[i] = 0
     img.save('oo.jpg')
 
