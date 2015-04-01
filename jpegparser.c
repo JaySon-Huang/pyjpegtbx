@@ -53,6 +53,35 @@ struct jvirt_barray_control {
     jvirt_barray_ptr next;    /* link to next virtual barray control block 下一块数据块 */
     backing_store_info b_s_info;  /* System-dependent control info 恢复数据的内容 */
 };
+typedef enum {          /* Operating modes for buffer controllers */
+    JBUF_PASS_THRU,     /* Plain stripwise operation */
+    /* Remaining modes require a full-image buffer to have been created */
+    JBUF_SAVE_SOURCE,   /* Run source subobject only, save output */
+    JBUF_CRANK_DEST,    /* Run dest subobject only, using saved data */
+    JBUF_SAVE_AND_PASS  /* Run both subobjects, save output */
+} J_BUF_MODE;
+/* Coefficient buffer control */
+struct jpeg_c_coef_controller {
+  JMETHOD(void, start_pass, (j_compress_ptr cinfo, J_BUF_MODE pass_mode));
+  JMETHOD(boolean, compress_data, (j_compress_ptr cinfo,
+                   JSAMPIMAGE input_buf));
+};
+/* Private buffer controller object */
+typedef struct {
+  struct jpeg_c_coef_controller pub; /* public fields */
+
+  JDIMENSION iMCU_row_num;  /* iMCU row # within image */
+  JDIMENSION mcu_ctr;       /* counts MCUs processed in current row */
+  int MCU_vert_offset;      /* counts MCU rows within iMCU row */
+  int MCU_rows_per_iMCU_row;    /* number of such rows needed */
+
+  /* Virtual block array for each component. */
+  jvirt_barray_ptr * whole_image;
+
+  /* Workspace for constructing dummy blocks at right/bottom edges. */
+  JBLOCKROW dummy_buffer[C_MAX_BLOCKS_IN_MCU];
+} my_coef_controller;
+typedef my_coef_controller * my_coef_controller_ptr;
 
 // 异常处理. error_ptr、error_mgr_t、my_error_exit
 typedef struct error_mgr_t * error_ptr;
@@ -277,25 +306,25 @@ PyObject *__getdct(
     struct jpeg_decompress_struct *cinfo)
 {
     PyObject *dict = PyDict_New();
-    jvirt_barray_ptr *coef_arrays = jpeg_read_coefficients(cinfo);
     PyObject *component, *coef;
+    jvirt_barray_ptr *coef_arrays = jpeg_read_coefficients(cinfo);
+    jpeg_component_info *compptr;
     for (int ci=0; ci!=cinfo->num_components; ++ci) {
         // 创建一个新的列表, 存储一个颜色分量所有DCT块
         jvirt_barray_ptr com_coef_array = coef_arrays[ci];
         JBLOCKARRAY block_array = com_coef_array->mem_buffer;
+        compptr = &cinfo->comp_info[ci];
         
-        int blocknum = (com_coef_array->rows_in_mem)*(com_coef_array->blocksperrow);
+        int blocknum = (compptr->height_in_blocks)*(compptr->width_in_blocks);
         component = PyList_New(blocknum);
-
-        for (int row=0; row!=com_coef_array->rows_in_mem; ++row) {
-            for (int col=0; col!=com_coef_array->blocksperrow; ++col) {
-                // 创建一个列表, 存储64个DCT分量
+        for (int blk_y=0; blk_y<compptr->height_in_blocks; ++blk_y){
+            for (int blk_x=0; blk_x<compptr->width_in_blocks; ++blk_x){
                 coef = PyList_New(64);
-                JCOEF *pcoef = block_array[row][col];
-                for (int i=0; i!=DCTSIZE2; ++i) {
-                    PyList_SetItem(coef, i, Py_BuildValue("i", pcoef[i]));
+                JCOEF *pcoef = block_array[blk_y][blk_x];
+                for (int i=0; i!=DCTSIZE2; ++i){
+                    PyList_SetItem(coef, i ,Py_BuildValue("i", pcoef[i]));
                 }
-                PyList_SetItem(component, row*(com_coef_array->blocksperrow) + col, coef);
+                PyList_SetItem(component, blk_y*(compptr->width_in_blocks)+blk_x, coef);
             }
         }
         // 添加到返回的字典中
@@ -545,7 +574,6 @@ int save_from_dct(
         PyObject *component, *coef;
         component = PyDict_GetItem(dctdata, Py_BuildValue("i", i));
         compptr = &cinfo.comp_info[i];
-        printf("compptr[%d]: %p\n", i, compptr);
         JBLOCKARRAY blockArray = coef_arrays[i]->mem_buffer;
         for(int row=0; row!=compptr->height_in_blocks; ++row){
             for (int col=0; col!=compptr->width_in_blocks; ++col){
@@ -554,14 +582,10 @@ int save_from_dct(
                 for (int j=0; j!=DCTSIZE2; ++j){
                     blockArray[row][col][j] = PyLong_AsLong(
                         PyList_GetItem(coef, j));
-                    if (row == col && row == 0)
-                        printf("[%p]:%d,",
-                            &((coef_arrays[i]->mem_buffer)[row][col][j]),
-                            (coef_arrays[i]->mem_buffer)[row][col][j]);
                 }
-                if (row == col && row == 0)
-                    printf("\n");
+                // printf("%d,", col);
             }
+            // printf("\nrow: [%d]\n", row);
         }
     }
     printf("after getCoefArrays\n");

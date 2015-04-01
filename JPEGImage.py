@@ -123,7 +123,7 @@ if __name__ == "__main__":
     # img.save('oo.jpg')
 
     files = [ "zhou.jpg", "zhou_cut.jpg", "lfs.jpg", "tic.jpg",]
-    # files = ["lfs.jpg"]
+    files = ["tic.jpg",] # Bad Case
     for filename in files:
         img = JPEGImage.open(filename, get_rawdct=True)
         for key,val in img.data.items():
