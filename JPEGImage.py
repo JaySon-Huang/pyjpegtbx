@@ -48,11 +48,9 @@ class JPEGImage:
         ret = _lib.parse(filename.encode(encoding='utf-8'), get_rawdct)
 
         # for debug
-        for key, val in ret.items():
-            #if key not in  ('data', 'ac_huff_tables', 'dc_huff_tables', 'quant_tbls') :
-            #    print(key,val)
-            if key == "data":
-                print(key, len(val))
+        # for key, val in ret.items():
+            # if key not in  ('data', 'ac_huff_tables', 'dc_huff_tables', 'quant_tbls') :
+               # print(key,val)
 
         img.isdct = get_rawdct
 
@@ -128,7 +126,7 @@ def main():
         img = JPEGImage.open(filename, get_rawdct=True)
         # import pdb;pdb.set_trace();
         for key,val in img.data.items():
-            print(key, val[0])
+            # print(key, val[0])
             for coef in val:
                 for i in range(48, 64):
                     coef[i] = 0

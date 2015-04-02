@@ -276,6 +276,7 @@ PyObject *parse(char* filename, int isdct)
             PyList_Append(ac_huff_tables, huff_table);
         }
     }
+    
     PyDict_SetItem(data, 
         Py_BuildValue("s", "dc_huff_tables"),
         dc_huff_tables);
@@ -423,7 +424,7 @@ int save_from_dct(
     PyObject *quant_tbls,
     PyObject *ac_huff_tables,
     PyObject *dc_huff_tables)
-{
+{    
     char err_msg[1024];
     memset(err_msg, 0, sizeof(err_msg));
 
@@ -473,12 +474,13 @@ int save_from_dct(
         jpeg_simple_progression(&cinfo);
     }
 
+    jpeg_component_info *compptr;
     int min_h=16, min_v=16;
-    for (int i=0; i!=cinfo.num_components; ++i){
-        PyObject *component = PyList_GetItem(comp_infos, i);
+    for (int ci=0; ci!=cinfo.num_components; ++ci){
+        PyObject *component = PyList_GetItem(comp_infos, ci);
 
-        jpeg_component_info *compptr = &cinfo.comp_info[i];
-        compptr->component_index = i;
+        compptr = cinfo.comp_info+ci;
+        compptr->component_index = ci;
         compptr->component_id = PyLong_AsLong(
             PyDict_GetItem(component, Py_BuildValue("s", "component_id")));
         compptr->quant_tbl_no = PyLong_AsLong(
@@ -508,15 +510,15 @@ int save_from_dct(
     cinfo.min_DCT_h_scaled_size = min_h;
     cinfo.min_DCT_v_scaled_size = min_v;
 
+    // set params to alloc coef arrays
     jvirt_barray_ptr *coef_arrays = (jvirt_barray_ptr *)
         (cinfo.mem->alloc_small)(
             (j_common_ptr)&cinfo, JPOOL_IMAGE,
             sizeof(jvirt_barray_ptr)*cinfo.num_components
         );
 
-    jpeg_component_info *compptr;
     for (int ci=0; ci!=cinfo.num_components; ++ci){
-        compptr = &cinfo.comp_info[ci];
+        compptr = cinfo.comp_info + ci;
         coef_arrays[ci] = (cinfo.mem->request_virt_barray)
             ((j_common_ptr)&cinfo, JPOOL_IMAGE, TRUE,
              (JDIMENSION) jround_up((long) compptr->width_in_blocks, (long)compptr->h_samp_factor),
@@ -525,61 +527,21 @@ int save_from_dct(
             );
     }
 
-    printf("block size: %d -> %d\n", cinfo.block_size, cinfo.min_DCT_h_scaled_size);
-    for (int ci=0;ci!=cinfo.num_components; ++ci){
-        printf("index, id, h_samp, v_samp: %d, %d, %d, %d\n",
-            cinfo.comp_info[ci].component_index,
-            cinfo.comp_info[ci].component_id,
-            cinfo.comp_info[ci].h_samp_factor,
-            cinfo.comp_info[ci].v_samp_factor);
-        printf("DCT_h_scaled, DCT_v_scaled: %d, %d\n",
-            cinfo.comp_info[ci].DCT_h_scaled_size,
-            cinfo.comp_info[ci].DCT_v_scaled_size);
-        printf("quant_tbl, ac_tbl, dc_tbl: %d, %d, %d\n",
-            cinfo.comp_info[ci].quant_tbl_no,
-            cinfo.comp_info[ci].ac_tbl_no,
-            cinfo.comp_info[ci].dc_tbl_no);
-        printf("blocks height, width: %d, %d\n",
-            cinfo.comp_info[ci].height_in_blocks,
-            cinfo.comp_info[ci].width_in_blocks);
-    }
-
     // realize virtual block arrays
-    printf("before jpeg_write_coefficients\n");
     jpeg_write_coefficients(&cinfo, coef_arrays);
-    printf("after jpeg_write_coefficients\n");
 
-    printf("block size: %d -> %d\n", cinfo.block_size, cinfo.min_DCT_h_scaled_size);
-    for (int ci=0;ci!=cinfo.num_components; ++ci){
-        printf("index, id, h_samp, v_samp: %d, %d, %d, %d\n",
-            cinfo.comp_info[ci].component_index,
-            cinfo.comp_info[ci].component_id,
-            cinfo.comp_info[ci].h_samp_factor,
-            cinfo.comp_info[ci].v_samp_factor);
-        printf("DCT_h_scaled, DCT_v_scaled: %d, %d\n",
-            cinfo.comp_info[ci].DCT_h_scaled_size,
-            cinfo.comp_info[ci].DCT_v_scaled_size);
-        printf("quant_tbl, ac_tbl, dc_tbl: %d, %d, %d\n",
-            cinfo.comp_info[ci].quant_tbl_no,
-            cinfo.comp_info[ci].ac_tbl_no,
-            cinfo.comp_info[ci].dc_tbl_no);
-        printf("blocks height, width: %d, %d\n",
-            cinfo.comp_info[ci].height_in_blocks,
-            cinfo.comp_info[ci].width_in_blocks);
-    }
-    
     // populate the array with the DCT coefficients
-    printf("before getCoefArrays\n");
-    for (int i=0; i!=cinfo.num_components; ++i){
+    for (int ci=0; ci!=cinfo.num_components; ++ci){
         PyObject *component, *coef;
-        component = PyDict_GetItem(dctdata, Py_BuildValue("i", i));
-        compptr = &cinfo.comp_info[i];
+
+        component = PyDict_GetItem(dctdata, Py_BuildValue("i", ci));
+        compptr = cinfo.comp_info + ci;
         int buffer_i=0;
-        jvirt_barray_ptr tmp_arrays = coef_arrays[i];
+        jvirt_barray_ptr tmp_arrays = coef_arrays[ci];
         JBLOCKARRAY buffer;
-        for(int row=0, act_row=0; 
+        for(int row=0, act_row=0;
             row!=compptr->height_in_blocks; ++row){
-            if (row >= (coef_arrays[i]->rows_in_mem)*(buffer_i+1)){
+            if (row >= (coef_arrays[ci]->rows_in_mem)*(buffer_i+1)){
                 fprintf(stderr, "rows_in_array, rows_in_mem: %d, %d"
                     "next array?[%p]\n", 
                     tmp_arrays->rows_in_array, tmp_arrays->rows_in_mem,
@@ -587,7 +549,7 @@ int save_from_dct(
                 tmp_arrays = tmp_arrays->next;
                 ++buffer_i;
             }
-            act_row = row - (buffer_i * (coef_arrays[i]->rows_in_mem));
+            act_row = row - (buffer_i * (coef_arrays[ci]->rows_in_mem));
             buffer = (cinfo.mem->access_virt_barray)
                 ((j_common_ptr)&cinfo, tmp_arrays, act_row, 1, TRUE);
 
@@ -601,7 +563,6 @@ int save_from_dct(
             }
         }
     }
-    printf("after getCoefArrays\n");
 
     // get the quantization tables
     Py_ssize_t sz_qtbls = PyList_Size(quant_tbls);
@@ -611,7 +572,6 @@ int save_from_dct(
             if (NULL == cinfo.quant_tbl_ptrs[i]){
                 cinfo.quant_tbl_ptrs[i] = 
                     jpeg_alloc_quant_table((j_common_ptr)&cinfo);
-                printf("New qtbl:[%zd]\n", i);
             }
             PyObject *quantval = PyDict_GetItem(quant_tbl, Py_BuildValue("s", "quantval"));
             for(int j=0; j!=DCTSIZE2; ++j){
@@ -628,6 +588,7 @@ int save_from_dct(
         Py_ssize_t sz_hufftbls;
         PyObject *huff_tbl, *counts, *symbols;
 
+        // ac
         sz_hufftbls = PyList_Size(ac_huff_tables);
         for (Py_ssize_t i=0; i!=NUM_HUFF_TBLS; ++i){
             if (i < sz_hufftbls){
@@ -651,6 +612,7 @@ int save_from_dct(
             }
         }
 
+        // dc
         sz_hufftbls = PyList_Size(dc_huff_tables);
         for (Py_ssize_t i=0; i!=NUM_HUFF_TBLS; ++i){
             if (i < sz_hufftbls){
