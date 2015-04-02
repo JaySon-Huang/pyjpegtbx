@@ -520,7 +520,7 @@ int save_from_dct(
         coef_arrays[ci] = (cinfo.mem->request_virt_barray)
             ((j_common_ptr)&cinfo, JPOOL_IMAGE, TRUE,
              (JDIMENSION) jround_up((long) compptr->width_in_blocks, (long)compptr->h_samp_factor),
-             (JDIMENSION) jround_up((long) compptr->width_in_blocks, (long)compptr->h_samp_factor),
+             (JDIMENSION) jround_up((long) compptr->height_in_blocks, (long)compptr->v_samp_factor),
              (JDIMENSION) compptr->v_samp_factor
             );
     }
@@ -574,18 +574,31 @@ int save_from_dct(
         PyObject *component, *coef;
         component = PyDict_GetItem(dctdata, Py_BuildValue("i", i));
         compptr = &cinfo.comp_info[i];
-        JBLOCKARRAY blockArray = coef_arrays[i]->mem_buffer;
-        for(int row=0; row!=compptr->height_in_blocks; ++row){
+        int buffer_i=0;
+        jvirt_barray_ptr tmp_arrays = coef_arrays[i];
+        JBLOCKARRAY buffer;
+        for(int row=0, act_row=0; 
+            row!=compptr->height_in_blocks; ++row){
+            if (row >= (coef_arrays[i]->rows_in_mem)*(buffer_i+1)){
+                fprintf(stderr, "rows_in_array, rows_in_mem: %d, %d"
+                    "next array?[%p]\n", 
+                    tmp_arrays->rows_in_array, tmp_arrays->rows_in_mem,
+                    tmp_arrays->next);
+                tmp_arrays = tmp_arrays->next;
+                ++buffer_i;
+            }
+            act_row = row - (buffer_i * (coef_arrays[i]->rows_in_mem));
+            buffer = (cinfo.mem->access_virt_barray)
+                ((j_common_ptr)&cinfo, tmp_arrays, act_row, 1, TRUE);
+
             for (int col=0; col!=compptr->width_in_blocks; ++col){
                 coef = PyList_GetItem(component, 
                         row*(compptr->width_in_blocks)+col);
                 for (int j=0; j!=DCTSIZE2; ++j){
-                    blockArray[row][col][j] = PyLong_AsLong(
-                        PyList_GetItem(coef, j));
+                    buffer[0][col][j] = PyLong_AsLong(
+                       PyList_GetItem(coef, j));
                 }
-                // printf("%d,", col);
             }
-            // printf("\nrow: [%d]\n", row);
         }
     }
     printf("after getCoefArrays\n");

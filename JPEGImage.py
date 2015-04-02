@@ -1,4 +1,5 @@
 #/usr/bin/env python3
+#encoding=utf-8
 
 import ctypes
 _lib = ctypes.CDLL("./libjpegtbx.so")
@@ -95,7 +96,7 @@ class JPEGImage:
                     rgb_data
                 )
 
-if __name__ == "__main__":
+def main():
     filename = "lfs.jpg"
     # img = JPEGImage.open(filename)
 
@@ -122,13 +123,16 @@ if __name__ == "__main__":
     #             coef[i] = 0
     # img.save('oo.jpg')
 
-    files = [ "zhou.jpg", "zhou_cut.jpg", "lfs.jpg", "tic.jpg",]
-    files = ["tic.jpg",] # Bad Case
+    files = [ "zhou.jpg", "zhou_cut.jpg", "lfs.jpg", "tic copy.jpg", "tic.jpg",]
     for filename in files:
         img = JPEGImage.open(filename, get_rawdct=True)
+        # import pdb;pdb.set_trace();
         for key,val in img.data.items():
             print(key, val[0])
             for coef in val:
                 for i in range(48, 64):
                     coef[i] = 0
         img.save(filename.split(".")[0]+"_saved.jpg")
+
+if __name__ == "__main__":
+    main()
