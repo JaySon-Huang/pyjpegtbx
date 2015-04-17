@@ -119,6 +119,16 @@ int save_from_dct(
     PyObject *ac_huff_tables,
     PyObject *dc_huff_tables);
 
+// Python Object 定义
+typedef struct{
+    PyObject_HEAD
+
+// 属性
+
+} JPEGImageObject;
+
+static JPEGImageObject JPEGImageType;
+
 PyObject *parse(char* filename, int isdct)
 {
     FILE *infile = NULL;
@@ -644,4 +654,23 @@ int save_from_dct(
     jpeg_destroy_compress(&cinfo);
     fclose(outfile);
     return 1;
+}
+
+static PyMethodDef 
+jpegtbxmodule_methods[] = {
+    { "JpegOptim", 
+      (PyCFunction)jpegoptim_new, 
+      METH_VARARGS | METH_KEYWORDS,
+      "JpegOptim(filename, strip_com=True, strip_iptc=True,\n"
+      "          strip_exif=True, strip_icc=True, quality=80)\n"
+      "Return a jpegoptim object."
+    },
+    { NULL, NULL },
+};
+
+/* module initialization */
+PyMODINIT_FUNC
+initpyjpegtbx(void)
+{
+     (void) Py_InitModule("pyjpegtbx", CosMethods);
 }

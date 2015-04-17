@@ -2,16 +2,17 @@
 #encoding=utf-8
 
 import ctypes
-_lib = ctypes.CDLL("./libjpegtbx.so")
+from ctypes.util import find_library
+_jpeglib = ctypes.cdll.LoadLibrary(find_library('jpeg'))
 
-_lib.parse.restype = ctypes.py_object
-_lib.parse.argtypes = [ctypes.c_char_p, ctypes.c_int]
+_jpeglib.parse.restype = ctypes.py_object
+_jpeglib.parse.argtypes = [ctypes.c_char_p, ctypes.c_int]
 
-_lib.save_from_rgb.restype = ctypes.c_int
-_lib.save_from_rgb.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
+_jpeglib.save_from_rgb.restype = ctypes.c_int
+_jpeglib.save_from_rgb.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p]
 
-_lib.save_from_dct.restype = ctypes.c_int
-_lib.save_from_dct.argtypes = [
+_jpeglib.save_from_dct.restype = ctypes.c_int
+_jpeglib.save_from_dct.argtypes = [
     ctypes.c_char_p, ctypes.c_char_p, # filename
     ctypes.py_object, # self.data, 
     ctypes.c_int, ctypes.c_int, ctypes.c_int, # self.size, self._color_space
