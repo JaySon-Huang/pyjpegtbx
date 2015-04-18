@@ -295,7 +295,7 @@ static PyObject* JPEGImage_new(PyObject *self, PyObject *args){
     // init member of obj
     obj->_filename = NULL;
     obj->filename = NULL;
-    obj->isDCT = FALSE;
+    obj->isDCT = TRUE;
     obj->size = NULL;
     obj->color_space = 0;
     obj->progressive_mode = FALSE;
@@ -305,7 +305,8 @@ static PyObject* JPEGImage_new(PyObject *self, PyObject *args){
     obj->ac_huff_tables = obj->dc_huff_tables = NULL;
     obj->optimize_coding = FALSE;
     
-    if (! PyArg_ParseTuple(args, "si", &obj->_filename, &obj->isDCT)){
+    // isDCT = True in default
+    if (! PyArg_ParseTuple(args, "s|i", &obj->_filename, &obj->isDCT)){
         return NULL;
     }
     obj->filename = Py_BuildValue("s", obj->_filename);
