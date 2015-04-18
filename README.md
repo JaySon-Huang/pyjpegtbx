@@ -58,4 +58,5 @@
 * * *
 
 ## Thanks
-Thanks for Independent JPEG Group (ijg) providing the library for JPEG image compression. [link](http://www.ijg.org/)
+* Thanks for Independent JPEG Group (ijg) providing the library for JPEG image compression. [link](http://www.ijg.org/)
+* Thanks for these article [使用C语言扩展Python(一)~(五)](http://www.cnblogs.com/phinecos/archive/2010/05/17/1737033.html)
