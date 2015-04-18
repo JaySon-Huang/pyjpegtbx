@@ -19,7 +19,40 @@
 
     >>> python setup.py install
 
-### Usage
+### Usage (English Version)
+    
+    >>> from pyjpegtbx import JPEGImage
+    >>> 
+    >>> # False for reading RGB data
+    >>> img = JPEGImage('lfs.jpg', False)
+    >>> newdata = []
+    >>> # RGB data now is in img.data
+    >>> for rgb in img.data:
+    >>>     newdata.append((0, rgb[1], rgb[2]))
+    >>> img.data = newdata
+    >>> img.save('tmp0.jpg')
+    >>> 
+    >>> # True(default) for reading DCT data
+    >>> img = JPEGImage('lfs.jpg')
+    >>> # components' info
+    >>> print img.comp_infos
+    >>> # quality tables
+    >>> print img.quant_tbls
+    >>> # huffman tables
+    >>> print img.ac_huff_tables
+    >>> print img.dc_huff_tables
+    >>> print img.filename
+    >>> print img.size # (width, height)
+    >>> # DCT data now is in img.data
+    >>> # print img.data
+    >>> # set some of DCT data to zero
+    >>> for key, val in img.data.items():
+    >>>     for coef in val:
+    >>>         for i in range(32, 64):
+    >>>             coef[i] = 0
+    >>> img.save('tmp1.jpg')
+
+### Usage (中文版)
     
     >>> from pyjpegtbx import JPEGImage
     >>> 
@@ -53,7 +86,6 @@
     >>>         for i in range(32, 64):
     >>>             coef[i] = 0
     >>> img.save('tmp1.jpg')
-
 
 * * *
 
