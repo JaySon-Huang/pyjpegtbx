@@ -9,7 +9,7 @@ setup(
     ext_modules=[
         Extension(
             name="pyjpegtbx",
-            sources=["testMoudle.c"],
+            sources=["jpegparser.c"],
             include_dirs=['/usr/include', '/usr/local/include'],
             library_dirs=['/usr/lib', '/usr/local/lib'],
             libraries=['jpeg'],
