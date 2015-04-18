@@ -230,8 +230,12 @@ static PyMethodDef JPEGImageMethods[] = {
 
 /* define JPEGImage Type in Python */
 static PyTypeObject JPEGImageType = {
+#if PY_MAJOR_VERSION >= 3
+    PyVarObject_HEAD_INIT(NULL, 0)
+#else
     PyObject_HEAD_INIT(NULL)
     0,
+#endif
     "pyjpegtbx.JPEGImage",              // tp_name
     sizeof(JPEGImageClassObject),       // tp_basicsize
     0,                                  // tp_itemsize
@@ -330,9 +334,31 @@ static PyMethodDef moduleMethods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef JPEGModuleDef = {
+    PyModuleDef_HEAD_INIT,  // m_base
+    "pyjpegtbx",            // m_name
+    "A toolbox for image in JPEG format",   // m_doc
+    -1,                     // m_size
+    moduleMethods,          // m_methods
+    NULL,                   // m_reload
+    NULL,                   // m_traverse
+    NULL,                   // m_clear
+    NULL                    // m_free
+};
+PyMODINIT_FUNC 
+PyInit_pyjpegtbx(void) {
+    PyObject *module=NULL;
+    if (PyType_Ready(&JPEGImageType) < 0) {
+        return NULL;
+    }
+    module = PyModule_Create(&JPEGModuleDef);
+    return module;
+}
+#else
 PyMODINIT_FUNC 
 initpyjpegtbx(void) {
-    PyObject *module;
+    PyObject *module=NULL;
     if (PyType_Ready(&JPEGImageType) < 0) {
         return ;
     }
@@ -342,6 +368,7 @@ initpyjpegtbx(void) {
         "A toolbox for image in JPEG format"
     );
 }
+#endif
 
 // C functions
 static bool __parse(JPEGImageClassObject *obj)
