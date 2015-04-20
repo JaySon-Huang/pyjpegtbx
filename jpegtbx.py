@@ -1,10 +1,12 @@
 import os
 import sys
+import json
+
 from PyQt5.QtCore import (
-    QDir, Qt
+    QDir, Qt, QVariant
 )
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QItemDelegate, QLabel
+    QApplication, QMainWindow, QItemDelegate, QLabel, QHeaderView
 )
 from PyQt5.QtGui import (
     QPixmap, QStandardItemModel, QStandardItem
@@ -22,32 +24,59 @@ class ImageDelegate(QItemDelegate):
         returns the widget used to change data from the model
         and can be reimplemented to customize editing behavior.
         '''
-        label = QLabel(parent)
-        # pic = QPixmap(filename)
-        # label.setPixmap(pic)
-        return label
+        if index.data() is None:
+            return super().createEditor(parent, option, index)
+        else:
+            pass
+            # jsobj = json.loads(index.data())
+            # print('createEditor', type(jsobj), jsobj)
+            # label = QLabel(parent)
+            # # pic = QPixmap(jsobj['file'])
+            # # label.setPixmap(pic)
+            # return label
 
     def setEditorData(self, editor, index):
         '''
         provides the widget with data to manipulate.
         '''
-        imgItem = index.model().item(index.row(), index.column())
-        pic = QPixmap(imgItem.filename)
-        # picScaled = pic.scaled(imgItem.size[0], imgItem.size[1], Qt.KeepAspectRatio)
-        # editor.setPixmap(QPixmap.fromImage(picScaled))
-        editor.setPixmap(pic)
+        if index.data() is None:
+            super().setEditorData(editor, index)
+        else:
+            pass
+            # jsobj = json.loads(index.data())
+            # print('setEditorData', type(jsobj), jsobj)
+            # pic = QPixmap(jsobj['file'])
+            # pic = pic.scaled(
+            #     jsobj['width'], jsobj['height'],
+            #     Qt.KeepAspectRatio
+            # )
+            # editor.setPixmap(pic)
 
     def setModelData(self, editor, model, index):
         '''
         returns updated data to the model.
         '''
-        super().setModelData(editor, model, index)
+        print('setModelData')
+        # super().setModelData(editor, model, index)
+        pass
 
     def updateEditorGeometry(self, editor, option, index):
         '''
         ensures that the editor is displayed correctly with respect to the item view.
         '''
         editor.setGeometry(option.rect)
+
+    def paint(self, painter, option, index):
+        if index.data() is None:
+            super().paint(painter, option, index)
+        else:
+            jsobj = json.loads(index.data())
+            pic = QPixmap(jsobj['file'])
+            pic = pic.scaled(
+                jsobj['width'], jsobj['height'],
+                Qt.KeepAspectRatio
+            )
+            painter.drawPixmap(option.rect.x(), option.rect.y(), pic)
 
 
 class ImageItem(QStandardItem):
@@ -77,10 +106,23 @@ class MainWindow(QMainWindow):
         # 加载Delegate类
         delegate = ImageDelegate()
         self.ui.mainView.setItemDelegate(delegate)
+        # 行、列宽自动适应
+        self.ui.mainView.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.ui.mainView.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # 加载数据
         for i, pic in enumerate(pics):
             col, row = i % self.mainViewSize['col'], i / self.mainViewSize['col']
-            item = ImageItem(pic, (250, 250))
-            self.mainViewModel.setItem(row, col, item)
+            index = self.mainViewModel.index(row, col)
+
+            data = {
+                'file': pic,
+                'height': 250,
+                'width': 250,
+            }
+            item = QVariant(json.dumps(data))
+
+            self.mainViewModel.setData(index, item)
 
     def setCurFilePath(self, filepath=None):
         if not filepath:
