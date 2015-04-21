@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#! /usr/bin/env python3
 #encoding=utf-8
 
 from pyjpegtbx import JPEGImage
@@ -15,18 +15,18 @@ img.save('tmp0.jpg')
 # 第二个参数默认为True, 表示读取DCT数据
 img = JPEGImage('lfs.jpg')
 # 查看颜色分量信息
-print img.comp_infos
+print(img.comp_infos)
 # 量化表
-print img.quant_tbls
+print(img.quant_tbls)
 # 哈夫曼表
-print img.ac_huff_tables
-print img.dc_huff_tables
+print(img.ac_huff_tables)
+print(img.dc_huff_tables)
 # 文件名
-print img.filename
+print(img.filename)
 # (width, height)
-print img.size
+print(img.size)
 # DCT数据信息
-# print img.data
+# print(img.data)
 # 把高频DCT系数设置为0
 for key, val in img.data.items():
     for coef in val:
