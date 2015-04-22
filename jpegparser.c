@@ -949,7 +949,7 @@ static PyObject* JPEGImage_copy(JPEGImageClassObject *self, PyObject *args){
             oriString = PyUnicode_AsUTF8AndSize(key, &unicodeSz);
             nkey = PyUnicode_DecodeUTF8(oriString, unicodeSz, NULL);
 #else
-            nkey = Py_BuildValue("s", PyUnicode_AS_DATA(key));
+            nkey = Py_BuildValue("s", PyString_AsString(key));
 #endif
             PyDict_SetItem(cur, nkey, nlst);
         }
@@ -970,7 +970,7 @@ static PyObject* JPEGImage_copy(JPEGImageClassObject *self, PyObject *args){
             oriString = PyUnicode_AsUTF8AndSize(key, &unicodeSz);
             nkey = PyUnicode_DecodeUTF8(oriString, unicodeSz, NULL);
 #else
-            nkey = Py_BuildValue("s", PyUnicode_AS_DATA(key));//bug
+            nkey = Py_BuildValue("s", PyString_AsString(key));
 #endif
             PyDict_SetItem(cur, nkey, nlst);
         }
@@ -991,7 +991,7 @@ static PyObject* JPEGImage_copy(JPEGImageClassObject *self, PyObject *args){
             oriString = PyUnicode_AsUTF8AndSize(key, &unicodeSz);
             nkey = PyUnicode_DecodeUTF8(oriString, unicodeSz, NULL);
 #else
-            nkey = Py_BuildValue("s", PyUnicode_AS_DATA(key));//bug
+            nkey = Py_BuildValue("s", PyString_AsString(key));
 #endif
             PyDict_SetItem(cur, nkey, nlst);
         }
