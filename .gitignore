@@ -52,3 +52,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# dir that secret photo used
+tmp/
+library/
