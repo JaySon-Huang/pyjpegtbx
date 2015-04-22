@@ -45,9 +45,8 @@ class GirdWidget(QWidget):
             pass
 
 
-
-
 class MainWindow(QMainWindow):
+    '''Main Window of Secret Photo'''
 
     # static strings
     strings = {
@@ -72,6 +71,7 @@ class MainWindow(QMainWindow):
 
         # 初始化paths, 并确保一些文件夹的存在性
         self.setPaths()
+        self.loaded = {}
 
         self.mainViewSize = {'col': 3, 'row': 3}  # col, row
 
@@ -101,79 +101,84 @@ class MainWindow(QMainWindow):
         ui.btn_encrypt.clicked.connect(
             self.encryptPhoto
         )
-        self.setScrollMode(ui.ckbox_scrollMode.checkState())
-        self.loadFilename = pics[0]  # for debug
-        self.loadOriPhoto(ui, self.loadFilename)
+        # ui.btn_loadImage.clicked.connect(
 
-    def loadOriPhoto(self, ui, filename):
-        self.loadImage = JPEGImage(self.loadFilename)
+        # )
+        self.setScrollMode(ui.ckbox_scrollMode.checkState())
+        self.__loadOriPhoto(ui, pics[0])  # for debug
+
+    def __loadOriPhoto(self, ui, filepath):
+        '''load original photo by filepath'''
+        self.loaded['oriFilepath'] = filepath
+        self.loaded['oriImage'] = JPEGImage(filepath)
         ui.lb_oriFilename.setText(
             self.strings['filename'] % (
-                os.path.basename(self.loadFilename), 'original'
+                os.path.basename(self.loaded['oriFilepath']), 'original'
             )
         )
         ui.lb_oriSize.setText(
-            self.strings['size'] % self.loadImage.size
+            self.strings['size'] % self.loaded['oriImage'].size
         )
-        ui.lb_oriImage.setImage(self.loadFilename, 300, 300)
+        ui.lb_oriImage.setImage(self.loaded['oriFilepath'], 300, 300)
         ui.lb_oriComponents.setText(
-            self.strings['component'] % len(self.loadImage.comp_infos)
+            self.strings['component'] % len(self.loaded['oriImage'].comp_infos)
         )
         ui.txedt_oriComponents.setText(
-            str(self.loadImage.comp_infos)
+            str(self.loaded['oriImage'].comp_infos)
         )
         ui.lb_oriQuantTbls.setText(
-            self.strings['quantization'] % len(self.loadImage.quant_tbls)
+            self.strings['quantization'] % len(self.loaded['oriImage'].quant_tbls)
         )
         ui.txedt_oriQuantTbls.setText(
-            str(self.loadImage.quant_tbls)
+            str(self.loaded['oriImage'].quant_tbls)
         )
         ui.lb_oriHuffTbls.setText(
             self.strings['huffman'] % (
-                len(self.loadImage.dc_huff_tables),
-                len(self.loadImage.ac_huff_tables)
+                len(self.loaded['oriImage'].dc_huff_tables),
+                len(self.loaded['oriImage'].ac_huff_tables)
                 )
         )
         ui.txedt_oriHuffTbls.setText(
-            str(self.loadImage.dc_huff_tables) +
-            str(self.loadImage.ac_huff_tables)
+            str(self.loaded['oriImage'].dc_huff_tables) +
+            str(self.loaded['oriImage'].ac_huff_tables)
         )
 
         # 成功载入后, 把Encrypt按钮设置为可用
         self.ui.btn_encrypt.setEnabled(True)
 
-    def loadDstPhoto(self, ui, filename):
-        self.loadImage = JPEGImage(self.loadFilename)
+    def __loadDstPhoto(self, ui, filepath):
+        self.loaded['dstFilepath'] = filepath
+        self.loaded['dstImage'] = JPEGImage(filepath)
         ui.lb_dstFilename.setText(
             self.strings['filename'] % (
-                os.path.basename(self.encryptedFilename), 'encrypted'
+                os.path.basename(self.loaded['dstFilepath']), 'encrypted'
             )
         )
         ui.lb_dstSize.setText(
-            self.strings['size'] % self.loadImage.size
+            self.strings['size'] % self.loaded['dstImage'].size
         )
-        ui.lb_dstImage.setImage(self.encryptedFilename, 300, 300)
+        ui.lb_dstImage.setImage(self.loaded['dstFilepath'], 300, 300)
         ui.lb_dstComponents.setText(
-            self.strings['component'] % len(self.loadImage.comp_infos)
+            self.strings['component'] % len(self.loaded['dstImage'].comp_infos)
         )
         ui.txedt_dstComponents.setText(
-            str(self.loadImage.comp_infos)
+            str(self.loaded['dstImage'].comp_infos)
         )
         ui.lb_dstQuantTbls.setText(
-            self.strings['quantization'] % len(self.loadImage.quant_tbls)
+            self.strings['quantization'] % len(self.loaded['dstImage'].quant_tbls)
         )
         ui.txedt_dstQuantTbls.setText(
-            str(self.loadImage.quant_tbls)
+            str(self.loaded['dstImage'].quant_tbls)
         )
         ui.lb_dstHuffTbls.setText(
             self.strings['huffman'] % (
-                len(self.loadImage.dc_huff_tables),
-                len(self.loadImage.ac_huff_tables)
+                len(self.loaded['dstImage'].dc_huff_tables),
+                len(self.loaded['dstImage'].ac_huff_tables)
                 )
         )
         ui.txedt_dstHuffTbls.setText(
-            str(self.loadImage.dc_huff_tables) +
-            str(self.loadImage.ac_huff_tables)
+            str(self.loaded['dstImage'].dc_huff_tables) +
+            str(self.loaded['dstImage'].ac_huff_tables)
         )
 
         # 成功载入后, 把Encrypt按钮设置为可用
@@ -181,13 +186,13 @@ class MainWindow(QMainWindow):
 
     def encryptPhoto(self):
         cipher = JPEGImageCipher()
-        cipher.encrypt(self.loadImage)
-        self.encryptedFilename = os.path.join(
-            self.paths['tmp'], os.path.basename(self.loadFilename)
+        self.loaded['dstImage'] = cipher.encrypt(self.loaded['oriImage'])
+        self.loaded['dstFilepath'] = os.path.join(
+            self.paths['tmp'], os.path.basename(self.loaded['oriFilepath'])
         )
-        print('save encrypted image to file:', self.encryptedFilename)
-        self.loadImage.save(self.encryptedFilename)
-        self.loadDstPhoto(self.ui, self.encryptedFilename)
+        print('save encrypted image to file:', self.loaded['dstFilepath'])
+        self.loaded['dstImage'].save(self.loaded['dstFilepath'])
+        self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
 
     def setScrollMode(self, state):
         if state == Qt.Unchecked:
