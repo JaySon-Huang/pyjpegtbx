@@ -221,10 +221,13 @@ static PyObject* JPEGImage_save(JPEGImageClassObject *self, PyObject *args){
         return Py_False;
     }
 }
+static PyObject* JPEGImage_copy(JPEGImageClassObject *self, PyObject *args);
 // register method in Python
 static PyMethodDef JPEGImageMethods[] = {
     {"save", (PyCFunction)JPEGImage_save, METH_VARARGS, 
      "save as JPEG image."},
+    {"copy", (PyCFunction)JPEGImage_copy, METH_VARARGS,
+     "return a copy of this object"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -294,7 +297,10 @@ static PyTypeObject JPEGImageType = {
 static PyObject* JPEGImage_new(PyObject *self, PyObject *args){
     JPEGImageClassObject *obj = 
         PyObject_New(JPEGImageClassObject, &JPEGImageType);
-    if (obj == NULL)    return NULL;
+    if (obj == NULL){
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
 
     // init member of obj
     obj->_filename = NULL;
@@ -311,7 +317,8 @@ static PyObject* JPEGImage_new(PyObject *self, PyObject *args){
     
     // isDCT = True in default
     if (! PyArg_ParseTuple(args, "s|i", &obj->_filename, &obj->isDCT)){
-        return NULL;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
     obj->filename = Py_BuildValue("s", obj->_filename);
     
@@ -817,7 +824,6 @@ static bool __saveDCT(
     fclose(outfile);
     return TRUE;
 }
-
 static void __getDCT(
     struct jpeg_decompress_struct *cinfo,
     JPEGImageClassObject *obj)
@@ -869,4 +875,129 @@ static void __getRGB(
             );
         }
     }
+}
+static PyObject* JPEGImage_copy(JPEGImageClassObject *self, PyObject *args){
+    JPEGImageClassObject *obj = 
+        PyObject_New(JPEGImageClassObject, &JPEGImageType);
+    if (obj == NULL){
+        Py_INCREF(Py_None);
+        return Py_None;
+    }
+
+    obj->_filename = self->_filename;
+    obj->filename = Py_BuildValue("s", obj->_filename);
+    obj->isDCT = self->isDCT;
+    int width, height;
+    (void) PyArg_ParseTuple(self->size, "ii", &width, &height);
+    obj->size = Py_BuildValue("(ii)", width, height);
+    obj->color_space = self->color_space;
+    obj->progressive_mode = self->progressive_mode;
+
+    Py_ssize_t len, lstLen, i, pos;
+#if PY_MAJOR_VERSION >= 3
+    char *oriString;
+    Py_ssize_t unicodeSz;
+#endif
+    PyObject *cur, *ori;
+    PyObject *key, *nkey, *val, *nlst;
+
+    // obj->comp_infos
+    len = PyList_Size(self->comp_infos);
+    obj->comp_infos = PyList_New(len);
+    for (i=0; i!=len; ++i){
+        ori = PyList_GetItem(self->comp_infos, i);
+        // use dict copy
+        cur = PyDict_Copy(ori);
+        PyList_SetItem(obj->comp_infos, i, cur);
+    }
+    if (obj->isDCT){// DCT's data. data is a dict of block list
+        obj->data = PyDict_New();
+        pos = 0;
+        while (PyDict_Next(self->data, &pos, &key, &val)){
+            // each val is a list of blocks
+            len = PyList_Size(val);
+            // use getSlice get a copy of list
+            cur = PyList_GetSlice(val, 0, len);
+            nkey = Py_BuildValue("i", PyLong_AsLong(key));
+            PyDict_SetItem(obj->data, nkey, cur);
+        }
+    }else{// RGB's data. data is a list of tuples
+        len = PyList_Size(self->data);
+        obj->data = PyList_New(len);
+        // ori is a tuple (iii)
+        int r, g, b;
+        for (i=0; i!=len; ++i){
+            ori = PyList_GetItem(self->data, i);
+            PyArg_ParseTuple(ori, "iii", &r, &g, &b);
+            PyList_SetItem(obj->data, i,
+                Py_BuildValue("(iii)", r, g, b)
+            );
+        }
+    }
+    // obj->quant_tbls
+    len = PyList_Size(self->quant_tbls);
+    obj->quant_tbls = PyList_New(len);
+    for (i=0; i!=len; ++i){
+        cur = PyDict_New();
+        ori = PyList_GetItem(self->quant_tbls, i);
+        pos = 0;
+        while (PyDict_Next(ori, &pos, &key, &val)){
+            // each val is a list of int
+            lstLen = PyList_Size(val);
+            nlst = PyList_GetSlice(val, 0, lstLen);
+#if PY_MAJOR_VERSION >= 3
+            oriString = PyUnicode_AsUTF8AndSize(key, &unicodeSz);
+            nkey = PyUnicode_DecodeUTF8(oriString, unicodeSz, NULL);
+#else
+            nkey = Py_BuildValue("s", PyString_AsString(key));
+#endif
+            PyDict_SetItem(cur, nkey, nlst);
+        }
+        PyList_SetItem(obj->quant_tbls, i, cur);
+    }
+    // obj->ac_huff_tables
+    len = PyList_Size(self->ac_huff_tables);
+    obj->ac_huff_tables = PyList_New(len);
+    for (i=0; i!=len; ++i){
+        cur = PyDict_New();
+        ori = PyList_GetItem(self->ac_huff_tables, i);
+        pos = 0;
+        while (PyDict_Next(ori, &pos, &key, &val)){
+            // each val is a list of int
+            lstLen = PyList_Size(val);
+            nlst = PyList_GetSlice(val, 0, lstLen);
+#if PY_MAJOR_VERSION >= 3
+            oriString = PyUnicode_AsUTF8AndSize(key, &unicodeSz);
+            nkey = PyUnicode_DecodeUTF8(oriString, unicodeSz, NULL);
+#else
+            nkey = Py_BuildValue("s", PyString_AsString(key));
+#endif
+            PyDict_SetItem(cur, nkey, nlst);
+        }
+        PyList_SetItem(obj->ac_huff_tables, i, cur);
+    }
+    // obj->dc_huff_tables
+    len = PyList_Size(self->dc_huff_tables);
+    obj->dc_huff_tables = PyList_New(len);
+    for (i=0; i!=len; ++i){
+        cur = PyDict_New();
+        ori = PyList_GetItem(self->dc_huff_tables, i);
+        pos = 0;
+        while (PyDict_Next(ori, &pos, &key, &val)){
+            // each val is a list of int
+            lstLen = PyList_Size(val);
+            nlst = PyList_GetSlice(val, 0, lstLen);
+#if PY_MAJOR_VERSION >= 3
+            oriString = PyUnicode_AsUTF8AndSize(key, &unicodeSz);
+            nkey = PyUnicode_DecodeUTF8(oriString, unicodeSz, NULL);
+#else
+            nkey = Py_BuildValue("s", PyString_AsString(key));
+#endif
+            PyDict_SetItem(cur, nkey, nlst);
+        }
+        PyList_SetItem(obj->dc_huff_tables, i, cur);
+    }
+    obj->optimize_coding = self->optimize_coding;
+
+    return (PyObject*) obj;
 }
