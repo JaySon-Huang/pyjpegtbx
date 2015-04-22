@@ -13,7 +13,7 @@ from PyQt5.QtCore import (
 )
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QItemDelegate, QLabel, QHeaderView, QGridLayout,
-    QWidget, QScrollArea, QGraphicsWidget
+    QWidget, QScrollArea, QGraphicsWidget, QFileDialog, QTreeWidgetItem
 )
 from PyQt5.QtGui import (
     QPixmap, QStandardItemModel, QStandardItem
@@ -55,6 +55,13 @@ class MainWindow(QMainWindow):
         'component': 'Components (%d in total)',
         'quantization': 'Quantization tables (%d in total)',
         'huffman': 'Huffman tables (%d for DC, %d for AC)',
+        'showedComponentsInfo': [
+            'dc_tbl_no',
+            'ac_tbl_no',
+            'quant_tbl_no',
+            'h_samp_factor',
+            'v_samp_factor',
+            ],
     }
     # static paths
     paths = {
@@ -75,7 +82,9 @@ class MainWindow(QMainWindow):
 
         self.mainViewSize = {'col': 3, 'row': 3}  # col, row
 
-        girdLayout_viewLibrary = QGridLayout(self.ui.scrollAreaWidgetContents)
+        girdLayout_viewLibrary = QGridLayout(
+            self.ui.scrollAreaWidgetContents
+        )
         for i, pic in enumerate(pics):
             col = i % self.mainViewSize['col']
             row = i / self.mainViewSize['col']
@@ -99,92 +108,188 @@ class MainWindow(QMainWindow):
             self.setScrollMode
         )
         ui.btn_encrypt.clicked.connect(
-            self.encryptPhoto
+            self.btn_encryptPhoto_clicked
         )
-        # ui.btn_loadImage.clicked.connect(
-
-        # )
+        ui.btn_loadImage.clicked.connect(
+            self.btn_loadImage_clicked
+        )
+        ui.btn_saveToLibrary.clicked.connect(
+            self.btn_saveToLibrary_clicked
+        )
+        ui.treeWidget_oriComponents.header().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
         self.setScrollMode(ui.ckbox_scrollMode.checkState())
         self.__loadOriPhoto(ui, pics[0])  # for debug
 
     def __loadOriPhoto(self, ui, filepath):
-        '''load original photo by filepath'''
-        self.loaded['oriFilepath'] = filepath
-        self.loaded['oriImage'] = JPEGImage(filepath)
-        ui.lb_oriFilename.setText(
-            self.strings['filename'] % (
-                os.path.basename(self.loaded['oriFilepath']), 'original'
-            )
-        )
-        ui.lb_oriSize.setText(
-            self.strings['size'] % self.loaded['oriImage'].size
-        )
-        ui.lb_oriImage.setImage(self.loaded['oriFilepath'], 300, 300)
-        ui.lb_oriComponents.setText(
-            self.strings['component'] % len(self.loaded['oriImage'].comp_infos)
-        )
-        ui.txedt_oriComponents.setText(
-            str(self.loaded['oriImage'].comp_infos)
-        )
-        ui.lb_oriQuantTbls.setText(
-            self.strings['quantization'] % len(self.loaded['oriImage'].quant_tbls)
-        )
-        ui.txedt_oriQuantTbls.setText(
-            str(self.loaded['oriImage'].quant_tbls)
-        )
-        ui.lb_oriHuffTbls.setText(
-            self.strings['huffman'] % (
-                len(self.loaded['oriImage'].dc_huff_tables),
-                len(self.loaded['oriImage'].ac_huff_tables)
+        '''load original photo by filepath if filepath is not NULL;
+        otherwise set Label to be default value.
+        '''
+        if filepath:
+            self.loaded['oriFilepath'] = filepath
+            img = JPEGImage(filepath)
+            self.loaded['oriImage'] = img
+            ui.lb_oriFilename.setText(
+                self.strings['filename'] % (
+                    os.path.basename(filepath), 'original'
                 )
-        )
-        ui.txedt_oriHuffTbls.setText(
-            str(self.loaded['oriImage'].dc_huff_tables) +
-            str(self.loaded['oriImage'].ac_huff_tables)
-        )
-
-        # 成功载入后, 把Encrypt按钮设置为可用
-        self.ui.btn_encrypt.setEnabled(True)
+            )
+            ui.lb_oriSize.setText(
+                self.strings['size'] % img.size
+            )
+            ui.lb_oriImage.setImage(filepath, 300, 300)
+            for comp in img.comp_infos:
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_oriComponents,
+                    [str(comp['component_id']), '', '']
+                )
+                for key in self.strings['showedComponentsInfo']:
+                    QTreeWidgetItem(topItem, ['', key, str(comp[key])])
+            ui.lb_oriComponents.setText(
+                self.strings['component'] % len(img.comp_infos)
+            )
+            ui.lb_oriQuantTbls.setText(
+                self.strings['quantization'] % len(img.quant_tbls)
+            )
+            for i, quant_tbl in enumerate(img.quant_tbls):
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_oriQuantTbls,
+                    [str(i), '', '']
+                )
+                for key in quant_tbl:
+                    QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
+            ui.lb_oriHuffTbls.setText(
+                self.strings['huffman'] % (
+                    len(img.dc_huff_tables),
+                    len(img.ac_huff_tables)
+                    )
+            )
+            for i, hufftbl in enumerate(img.dc_huff_tables):
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_oriHuffTbls,
+                    [str(i), 'type', 'DC']
+                )
+                for key in hufftbl:
+                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+            for i, hufftbl in enumerate(img.ac_huff_tables):
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_oriHuffTbls,
+                    [str(i), 'type', 'AC']
+                )
+                for key in hufftbl:
+                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+            # 成功载入后, 把Encrypt按钮设置为可用
+            ui.btn_encrypt.setEnabled(True)
+        else:
+            self.loaded['oriFilepath'] = None
+            self.loaded['oriImage'] = None
+            ui.lb_oriFilename.setText(
+                self.strings['filename'] % ('', 'NO image loaded')
+            )
+            ui.lb_oriSize.setText(
+                self.strings['size'] % (0, 0)
+            )
+            ui.lb_oriImage.clear()
+            ui.lb_oriComponents.setText(
+                self.strings['component'] % 0
+            )
+            ui.lb_oriQuantTbls.setText(
+                self.strings['quantization'] % 0
+            )
+            ui.lb_oriHuffTbls.setText(
+                self.strings['huffman'] % (0, 0)
+            )
+            ui.btn_encrypt.setEnabled(False)
 
     def __loadDstPhoto(self, ui, filepath):
-        self.loaded['dstFilepath'] = filepath
-        self.loaded['dstImage'] = JPEGImage(filepath)
-        ui.lb_dstFilename.setText(
-            self.strings['filename'] % (
-                os.path.basename(self.loaded['dstFilepath']), 'encrypted'
-            )
-        )
-        ui.lb_dstSize.setText(
-            self.strings['size'] % self.loaded['dstImage'].size
-        )
-        ui.lb_dstImage.setImage(self.loaded['dstFilepath'], 300, 300)
-        ui.lb_dstComponents.setText(
-            self.strings['component'] % len(self.loaded['dstImage'].comp_infos)
-        )
-        ui.txedt_dstComponents.setText(
-            str(self.loaded['dstImage'].comp_infos)
-        )
-        ui.lb_dstQuantTbls.setText(
-            self.strings['quantization'] % len(self.loaded['dstImage'].quant_tbls)
-        )
-        ui.txedt_dstQuantTbls.setText(
-            str(self.loaded['dstImage'].quant_tbls)
-        )
-        ui.lb_dstHuffTbls.setText(
-            self.strings['huffman'] % (
-                len(self.loaded['dstImage'].dc_huff_tables),
-                len(self.loaded['dstImage'].ac_huff_tables)
+        if filepath:
+            self.loaded['dstFilepath'] = filepath
+            img = JPEGImage(filepath)
+            self.loaded['dstImage'] = img
+            ui.lb_dstFilename.setText(
+                self.strings['filename'] % (
+                    os.path.basename(filepath), 'original'
                 )
-        )
-        ui.txedt_dstHuffTbls.setText(
-            str(self.loaded['dstImage'].dc_huff_tables) +
-            str(self.loaded['dstImage'].ac_huff_tables)
-        )
+            )
+            ui.lb_dstSize.setText(
+                self.strings['size'] % img.size
+            )
+            ui.lb_dstImage.setImage(filepath, 300, 300)
+            for comp in img.comp_infos:
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_dstComponents,
+                    [str(comp['component_id']), '', '']
+                )
+                for key in self.strings['showedComponentsInfo']:
+                    QTreeWidgetItem(topItem, ['', key, str(comp[key])])
+            ui.lb_dstComponents.setText(
+                self.strings['component'] % len(img.comp_infos)
+            )
+            ui.lb_dstQuantTbls.setText(
+                self.strings['quantization'] % len(img.quant_tbls)
+            )
+            for i, quant_tbl in enumerate(img.quant_tbls):
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_dstQuantTbls,
+                    [str(i), '', '']
+                )
+                for key in quant_tbl:
+                    QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
+            ui.lb_dstHuffTbls.setText(
+                self.strings['huffman'] % (
+                    len(img.dc_huff_tables),
+                    len(img.ac_huff_tables)
+                    )
+            )
+            for i, hufftbl in enumerate(img.dc_huff_tables):
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_dstHuffTbls,
+                    [str(i), 'type', 'DC']
+                )
+                for key in hufftbl:
+                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+            for i, hufftbl in enumerate(img.ac_huff_tables):
+                topItem = QTreeWidgetItem(
+                    ui.treeWidget_dstHuffTbls,
+                    [str(i), 'type', 'AC']
+                )
+                for key in hufftbl:
+                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+            # 成功载入后, 把Encrypt按钮设置为可用
+            ui.btn_saveToLibrary.setEnabled(True)
+        else:
+            self.loaded['dstFilepath'] = None
+            self.loaded['dstImage'] = None
+            ui.lb_dstFilename.setText(
+                self.strings['filename'] % ('', 'NO image loaded')
+            )
+            ui.lb_dstSize.setText(
+                self.strings['size'] % (0, 0)
+            )
+            ui.lb_dstImage.clear()
+            ui.lb_dstComponents.setText(
+                self.strings['component'] % 0
+            )
+            ui.lb_dstQuantTbls.setText(
+                self.strings['quantization'] % 0
+            )
+            ui.lb_dstHuffTbls.setText(
+                self.strings['huffman'] % (0, 0)
+            )
+            ui.btn_saveToLibrary.setEnabled(False)
 
-        # 成功载入后, 把Encrypt按钮设置为可用
-        ui.btn_saveToLibrary.setEnabled(True)
+    def btn_loadImage_clicked(self):
+        filepath, _ = QFileDialog.getOpenFileName(
+            parent=self, caption='Open', directory='', filter='*.jpg'
+        )
+        if filepath:
+            # set ori side
+            self.__loadOriPhoto(self.ui, filepath)
+            # clear dst side
+            self.__loadDstPhoto(self.ui, '')
 
-    def encryptPhoto(self):
+    def btn_encryptPhoto_clicked(self):
         cipher = JPEGImageCipher()
         self.loaded['dstImage'] = cipher.encrypt(self.loaded['oriImage'])
         self.loaded['dstFilepath'] = os.path.join(
@@ -193,6 +298,15 @@ class MainWindow(QMainWindow):
         print('save encrypted image to file:', self.loaded['dstFilepath'])
         self.loaded['dstImage'].save(self.loaded['dstFilepath'])
         self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
+
+    def btn_saveToLibrary_clicked(self):
+        libpath = os.path.join(
+            self.paths['library'], os.path.basename(self.loaded['dstFilepath'])
+        )
+        os.rename(self.loaded['dstFilepath'], libpath)
+        print('file: %s moved to %s' % (self.loaded['dstFilepath'], libpath))
+        self.loaded['dstFilepath'] = libpath
+        self.loaded['dstImage'].filename = libpath
 
     def setScrollMode(self, state):
         if state == Qt.Unchecked:
