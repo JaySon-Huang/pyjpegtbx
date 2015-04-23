@@ -26,6 +26,7 @@ class ImageLabel(QLabel):
     def __init__(self, text=None, parent=None):
         super().__init__(parent)
         self.filepath = None
+        self.setCursor(Qt.PointingHandCursor)
 
     def setImage(self, filepath, width, height):
         self.filepath = filepath
