@@ -13,41 +13,26 @@ from PyQt5.QtCore import (
 )
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QItemDelegate, QLabel, QHeaderView, QGridLayout,
-    QWidget, QScrollArea, QGraphicsWidget, QFileDialog, QTreeWidgetItem
+    QWidget, QScrollArea, QGraphicsWidget, QFileDialog, QTreeWidgetItem,
+    QSizePolicy
 )
 from PyQt5.QtGui import (
     QPixmap, QStandardItemModel, QStandardItem
 )
 
-from ui_GirdWidget import Ui_GirdWidget
+from GridWidget import GridWidget
 from ui_MainWindow import Ui_MainWindow
 
-
 pics = ['lfs.jpg', 'tmp0.jpg', 'tmp1.jpg']
-
-
-class GirdWidget(QWidget):
-    def __init__(self, filename, size, parent=None):
-        super().__init__(parent)
-
-        self.ui = Ui_GirdWidget()
-        self.ui.setupUi(self)
-
-        if filename:
-            pic = QPixmap(filename)
-            pic = pic.scaled(
-                size[0], size[1],
-                Qt.KeepAspectRatio
-            )
-            self.ui.lb_preview.setPixmap(pic)
-            self.ui.lb_filename.setText(filename)
-        else:
-            pass
 
 
 class MainWindow(QMainWindow):
     '''Main Window of Secret Photo'''
 
+    # property
+    properties = {
+        'columnSize': 3
+    }
     # static strings
     strings = {
         'filename': 'filename: %s (%s)',
@@ -80,27 +65,43 @@ class MainWindow(QMainWindow):
         self.setPaths()
         self.loaded = {}
 
-        self.mainViewSize = {'col': 3, 'row': 3}  # col, row
+        self.setUpTabLibrary(self.ui)
+        self.setUpTabAddPhoto(self.ui)
 
-        girdLayout_viewLibrary = QGridLayout(
-            self.ui.scrollAreaWidgetContents
-        )
-        for i, pic in enumerate(pics):
-            col = i % self.mainViewSize['col']
-            row = i / self.mainViewSize['col']
-            girdLayout_viewLibrary.addWidget(
-                GirdWidget(pic, (250, 250)),
-                row, col
+    def setUpTabLibrary(self, ui):
+        libfiles = [os.path.join(self.paths['library'], _)
+            for _ in os.listdir(self.paths['library'])
+        ]
+        print('files', libfiles)
+        self.ui.libraryWidgets = []
+
+        sp = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sp.setHorizontalStretch(0)
+        sp.setVerticalStretch(0)
+
+        for i, filepath in enumerate(libfiles):
+            col = i % self.properties['columnSize']
+            row = i / self.properties['columnSize']
+            widget = GridWidget(ui.scrollAreaWidgetContents)
+            sp.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
+            widget.setSizePolicy(sp)
+            widget.setContent(filepath, (250, 250))
+            ui.gridLayout.addWidget(
+                widget, row, col, Qt.AlignHCenter | Qt.AlignVCenter
             )
+            self.ui.libraryWidgets.append(widget)
         while i < 11:
             i += 1
-            col = i % self.mainViewSize['col']
-            row = i / self.mainViewSize['col']
-            girdLayout_viewLibrary.addWidget(
-                GirdWidget('', (0, 0)),
-                row, col
+            col = i % self.properties['columnSize']
+            row = i / self.properties['columnSize']
+            widget = GridWidget(ui.scrollAreaWidgetContents)
+            sp.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
+            widget.setSizePolicy(sp)
+            widget.setContent('', None)
+            ui.gridLayout.addWidget(
+                widget, row, col, Qt.AlignHCenter | Qt.AlignVCenter
             )
-        self.setUpTabAddPhoto(self.ui)
+            self.ui.libraryWidgets.append(widget)
 
     def setUpTabAddPhoto(self, ui):
         # 绑定同步CheckBox状态改变信号和动作槽

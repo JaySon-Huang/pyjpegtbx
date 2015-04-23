@@ -24,7 +24,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideMiddle</enum>
@@ -36,6 +36,12 @@
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QScrollArea" name="scrollArea">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
@@ -48,6 +54,7 @@
              <height>588</height>
             </rect>
            </property>
+           <layout class="QGridLayout" name="gridLayout"/>
           </widget>
          </widget>
         </item>
@@ -114,7 +121,7 @@
                <x>0</x>
                <y>0</y>
                <width>403</width>
-               <height>1091</height>
+               <height>1002</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
