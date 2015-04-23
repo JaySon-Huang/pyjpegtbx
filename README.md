@@ -3,21 +3,27 @@
 
 * * *
 
-## 开发环境
+## My Develop environment
 * Mac OS X
-* python2
-* gcc+llvm
-* libjpeg 8d
+* python3 (3.4.2)
+* gcc (4.9.2) + llvm (3.5.0)
+* libjpeg (8d)
+* qt5 (5.4.0)
+* PyQt5 (5.3.2)
 
-### 准备开发环境
-`Mac OS X`:
+### Prepare for develop environment
+`in Mac OS X`:
 
-    brew install python
+    brew install python3
     brew install libjpeg
+
+    brew install qt5
+    brew install pyqt5
+
 
 ### Install
 
-    >>> python setup.py install
+    >>> python3 setup.py install
 
 ### Usage (English Version)
     
@@ -86,6 +92,10 @@
     >>>         for i in range(32, 64):
     >>>             coef[i] = 0
     >>> img.save('tmp1.jpg')
+
+### Gui Version
+    
+    >>> python3 jpegtbx.py
 
 * * *
 
