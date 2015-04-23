@@ -4,6 +4,7 @@
 import os
 import sys
 import json
+import hashlib
 
 from pyjpegtbx import JPEGImage
 from JPEGImageCipher import JPEGImageCipher
@@ -14,7 +15,7 @@ from PyQt5.QtCore import (
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QItemDelegate, QLabel, QHeaderView, QGridLayout,
     QWidget, QScrollArea, QGraphicsWidget, QFileDialog, QTreeWidgetItem,
-    QSizePolicy
+    QSizePolicy, QInputDialog, QLineEdit
 )
 from PyQt5.QtGui import (
     QPixmap, QStandardItemModel, QStandardItem
@@ -64,11 +65,15 @@ class MainWindow(QMainWindow):
         # 初始化paths, 并确保一些文件夹的存在性
         self.setPaths()
         self.loaded = {}
+        self.seed = None
 
         self.setUpTabLibrary(self.ui)
         self.setUpTabAddPhoto(self.ui)
 
     def setUpTabLibrary(self, ui):
+        ui.btn_enterPassword.clicked.connect(
+            self.btn_enterPassword_clicked
+        )
         libfiles = [os.path.join(self.paths['library'], _)
             for _ in os.listdir(self.paths['library'])
         ]
@@ -110,6 +115,9 @@ class MainWindow(QMainWindow):
         )
         ui.btn_encrypt.clicked.connect(
             self.btn_encryptPhoto_clicked
+        )
+        ui.btn_decrypt.clicked.connect(
+            self.btn_decryptPhoto_clicked
         )
         ui.btn_loadImage.clicked.connect(
             self.btn_loadImage_clicked
@@ -180,8 +188,9 @@ class MainWindow(QMainWindow):
                 )
                 for key in hufftbl:
                     QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            # 成功载入后, 把Encrypt按钮设置为可用
+            # 成功载入后, 把 Encrypt/Decrypt 按钮设置为可用
             ui.btn_encrypt.setEnabled(True)
+            ui.btn_decrypt.setEnabled(True)
         else:
             self.loaded['oriFilepath'] = None
             self.loaded['oriImage'] = None
@@ -195,13 +204,17 @@ class MainWindow(QMainWindow):
             ui.lb_oriComponents.setText(
                 self.strings['component'] % 0
             )
+            ui.treeWidget_oriComponents.clear()
             ui.lb_oriQuantTbls.setText(
                 self.strings['quantization'] % 0
             )
+            ui.treeWidget_oriQuantTbls.clear()
             ui.lb_oriHuffTbls.setText(
                 self.strings['huffman'] % (0, 0)
             )
+            ui.treeWidget_oriHuffTbls.clear()
             ui.btn_encrypt.setEnabled(False)
+            ui.btn_decrypt.setEnabled(False)
 
     def __loadDstPhoto(self, ui, filepath):
         if filepath:
@@ -272,33 +285,77 @@ class MainWindow(QMainWindow):
             ui.lb_dstComponents.setText(
                 self.strings['component'] % 0
             )
+            ui.treeWidget_dstComponents.clear()
             ui.lb_dstQuantTbls.setText(
                 self.strings['quantization'] % 0
             )
+            ui.treeWidget_dstQuantTbls.clear()
             ui.lb_dstHuffTbls.setText(
                 self.strings['huffman'] % (0, 0)
             )
+            ui.treeWidget_dstHuffTbls.clear()
             ui.btn_saveToLibrary.setEnabled(False)
+
+    def btn_enterPassword_clicked(self):
+        password, isOK = QInputDialog.getText(
+            self, 'Enter your password', 'Password:',
+            QLineEdit.Password
+        )
+        if isOK:
+            print(password)
+            h = hashlib.md5(password.encode('utf-8')).digest()
+            front, back = 0, 0
+            for i, num in enumerate(h):
+                if i < 8:
+                    front <<= 8
+                    front += num
+                    front &= 0xFFFFFFFF
+                else:
+                    back <<= 8
+                    back += num
+                    back &= 0xFFFFFFFF
+            front *= 1.0
+            back *= 1.0
+            self.seed = front/back if front < back else back/front
 
     def btn_loadImage_clicked(self):
         filepath, _ = QFileDialog.getOpenFileName(
             parent=self, caption='Open', directory='', filter='*.jpg'
         )
         if filepath:
+            # clear ori side
+            self.__loadOriPhoto(self.ui, '')
             # set ori side
             self.__loadOriPhoto(self.ui, filepath)
             # clear dst side
             self.__loadDstPhoto(self.ui, '')
 
     def btn_encryptPhoto_clicked(self):
-        cipher = JPEGImageCipher()
+        if not self.seed:
+            self.btn_enterPassword_clicked()
+        cipher = JPEGImageCipher(self.seed)
         self.loaded['dstImage'] = cipher.encrypt(self.loaded['oriImage'])
+        self.__saveToTempFile()
+        self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
+
+    def btn_decryptPhoto_clicked(self):
+        if not self.seed:
+            self.btn_enterPassword_clicked()
+        cipher = JPEGImageCipher(self.seed)
+        self.loaded['dstImage'] = cipher.decrypt(self.loaded['oriImage'])
+        self.__saveToTempFile()
+        self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
+
+    def __saveToTempFile(self):
+        '''set self.loaded['dstFilepath'] as a temp file and
+        save self.loaded['dstImage'] to it.'''
         self.loaded['dstFilepath'] = os.path.join(
             self.paths['tmp'], os.path.basename(self.loaded['oriFilepath'])
         )
-        print('save encrypted image to file:', self.loaded['dstFilepath'])
+        print('save encrypted/decrypted image to temp file:',
+            self.loaded['dstFilepath']
+        )
         self.loaded['dstImage'].save(self.loaded['dstFilepath'])
-        self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
 
     def btn_saveToLibrary_clicked(self):
         libpath = os.path.join(
