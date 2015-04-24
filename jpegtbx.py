@@ -7,7 +7,8 @@ import json
 import hashlib
 
 from pyjpegtbx import JPEGImage
-from JPEGImageCipher import JPEGImageCipher
+# from JPEGImageCipher import JPEGImageCipher0 as JPEGImageCipher
+from JPEGImageCipher import JPEGImageCipher1 as JPEGImageCipher
 
 from PyQt5.QtCore import (
     QDir, Qt, QVariant
