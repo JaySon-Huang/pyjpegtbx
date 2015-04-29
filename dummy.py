@@ -2,6 +2,7 @@
 #encoding=utf-8
 
 import ctypes
+from copy import deepcopy
 
 _all_libs = (
     ('jpeg.dll', 'libjpeg.so', 'libjpeg.dylib'),
@@ -37,6 +38,7 @@ MAX_SAMP_FACTOR = 4  # JPEG limit on sampling factors
 C_MAX_BLOCKS_IN_MCU = 10  # compressor's limit on blocks per MCU
 D_MAX_BLOCKS_IN_MCU = 10  # decompressor's limit on blocks per MCU
 JPEG_LIB_VERSION = 80  # Compatibility version 9.0
+JPOOL_IMAGE = 1
 
 # boolean is char : ctypes.c_char
 # JDIMENSION is unsigned int : ctypes.c_uint
@@ -54,16 +56,21 @@ JPEG_LIB_VERSION = 80  # Compatibility version 9.0
 
 JSAMPLE = ctypes.c_char
 JSAMPROW = ctypes.POINTER(JSAMPLE)
-JSAMPARRAY = ctypes.POINTER(JSAMPLE)
+JSAMPARRAY = ctypes.POINTER(JSAMPROW)
 
 JCOEF = ctypes.c_short
 JBLOCK = JCOEF * DCTSIZE2
+JBLOCK.__repr__ = lambda self: 'JBLOCK @ %x' % ctypes.addressof(self)
 JBLOCKROW = ctypes.POINTER(JBLOCK)
 JBLOCKARRAY = ctypes.POINTER(JBLOCKROW)
 jmp_buf = ctypes.c_int * 37
 
 
 class jpeg_error_mgr(ctypes.Structure):
+    pass
+
+
+class jpeg_memory_mgr(ctypes.Structure):
     pass
 
 
@@ -112,7 +119,7 @@ class jpeg_component_info(ctypes.Structure):
 class jpeg_compress_struct(ctypes.Structure):
     _fields_ = (
         ('err', ctypes.c_void_p),
-        ('mem', ctypes.c_void_p),
+        ('mem', ctypes.POINTER(jpeg_memory_mgr)),
         ('progress', ctypes.c_void_p),
         ('client_data', ctypes.c_void_p),
         ('is_decompressor', ctypes.c_char),
@@ -196,7 +203,7 @@ j_compress_ptr = ctypes.POINTER(jpeg_compress_struct)
 class jpeg_common_struct(ctypes.Structure):
     _fields_ = (
         ('err', ctypes.c_void_p),
-        ('mem', ctypes.c_void_p),
+        ('mem', ctypes.POINTER(jpeg_memory_mgr)),
         ('progress', ctypes.c_void_p),
         ('client_data', ctypes.c_void_p),
         ('is_decompressor', ctypes.c_char),
@@ -208,7 +215,7 @@ j_common_ptr = ctypes.POINTER(jpeg_common_struct)
 class jpeg_decompress_struct(ctypes.Structure):
     _fields_ = (
         ('err', ctypes.POINTER(jpeg_error_mgr)),
-        ('mem', ctypes.c_void_p),
+        ('mem', ctypes.POINTER(jpeg_memory_mgr)),
         ('progress', ctypes.c_void_p),
         ('client_data', ctypes.c_void_p),
         ('is_decompressor', ctypes.c_char),
@@ -371,6 +378,32 @@ jvirt_barray_control._fields_ = (
     ('next', ctypes.POINTER(jvirt_barray_control)),
     ('b_s_info', backing_store_info),
 )
+jvirt_barray_ptr = ctypes.POINTER(jvirt_barray_control)
+
+ALLOC_SARRAY_FUNC = ctypes.CFUNCTYPE(
+    JSAMPARRAY,
+    j_common_ptr, ctypes.c_int, ctypes.c_uint, ctypes.c_uint
+)
+ACCESS_VIRT_BARRAY_FUNC = ctypes.CFUNCTYPE(
+    JBLOCKARRAY,
+    j_common_ptr, jvirt_barray_ptr, ctypes.c_uint, ctypes.c_uint, ctypes.c_int
+)
+
+jpeg_memory_mgr._fields_ = (
+    ('alloc_small', ctypes.c_void_p),
+    ('alloc_large', ctypes.c_void_p),
+    ('alloc_sarray', ALLOC_SARRAY_FUNC),
+    ('alloc_barray', ctypes.c_void_p),
+    ('request_virt_sarray', ctypes.c_void_p),
+    ('request_virt_barray', ctypes.c_void_p),
+    ('realize_virt_arrays', ctypes.c_void_p),
+    ('access_virt_sarray', ctypes.c_void_p),
+    ('access_virt_barray', ACCESS_VIRT_BARRAY_FUNC),
+    ('free_pool', ctypes.c_void_p),
+    ('self_destruct', ctypes.c_void_p),
+    ('max_memory_to_use', ctypes.c_long),
+    ('max_alloc_chunk', ctypes.c_long),
+)
 
 funcs = {}
 cfopen = _c.fopen
@@ -415,12 +448,6 @@ jpeg_error_mgr._fields_ = (
 
 def register_function(funcname, restype, argtypes, asFuncname=None):
     func = _jpeg.__getattr__(funcname)
-    # if funcname == 'jpeg_CreateDecompress':
-    #     func = lambda cinfo: _func(cinfo, JPEG_LIB_VERSION, ctypes.sizeof(jpeg_decompress_struct))
-    # elif funcname == 'jpeg_CreateCompress':
-    #     func = lambda cinfo: _func(cinfo, JPEG_LIB_VERSION, ctypes.sizeof(jpeg_compress_struct))
-    # else:
-    #     func = _func
     func.restype = restype
     func.argtypes = argtypes
     if asFuncname is None:
@@ -432,13 +459,14 @@ funcs_metadata = (
         ctypes.POINTER(jpeg_error_mgr),
         (ctypes.POINTER(jpeg_error_mgr),),
         'jStdError'),
+
     ('jpeg_CreateDecompress',
         None,
         (j_decompress_ptr, ctypes.c_int, ctypes.c_size_t),
         'jCreaDecompress'),
     ('jpeg_CreateCompress',
         None,
-        (),
+        (j_compress_ptr, ctypes.c_int, ctypes.c_size_t),
         'jCreaCompress'),
 
     ('jpeg_stdio_src',
@@ -449,71 +477,79 @@ funcs_metadata = (
         None,
         (j_compress_ptr, ctypes.c_void_p),
         'jStdDest'),
+
     ('jpeg_mem_src',
         None,
         (j_decompress_ptr, ctypes.c_char_p, ctypes.c_ulong),
         'jMemSrc'),
+    ('jpeg_mem_dest',
+        None,
+        (j_compress_ptr,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_long)
+        ),
+        'jMemDest'),
 
     ('jpeg_start_compress',
         None,
         (),
         'jStrtCompress'),
     ('jpeg_start_decompress',
-        None,
-        (),
+        ctypes.c_int,
+        (j_decompress_ptr, ),
         'jStrtDecompress'),
+
+    ('jpeg_set_defaults',
+        None,
+        (j_compress_ptr,),
+        'jSetDefaults'),
+    ('jpeg_set_quality',
+        None,
+        (j_compress_ptr, ctypes.c_int, ctypes.c_int),
+        'jSetQuality'),
+    ('jpeg_simple_progression',
+        None,
+        (j_compress_ptr,),
+        'jSimProgress'),
 
     ('jpeg_read_header',
         None,
         (j_decompress_ptr, ctypes.c_bool),
         'jReadHeader'),
-    ('jpeg_set_defaults',
-        None,
-        (),
-        'jSetDefaults'),
-    ('jpeg_set_quality',
-        None,
-        (),
-        'jSetQuality'),
-    ('jpeg_simple_progression',
-        None,
-        (),
-        'jSimProgress'),
 
-    ('jpeg_read_scanlines',
-        None,
-        (),
-        'jReadScanlines'),
     ('jpeg_write_scanlines',
-        None,
-        (),
+        ctypes.c_uint,
+        (j_compress_ptr, JSAMPARRAY, ctypes.c_uint),
         'jWrtScanlines'),
+    ('jpeg_read_scanlines',
+        ctypes.c_uint,
+        (j_decompress_ptr, JSAMPARRAY, ctypes.c_uint),
+        'jReadScanlines'),
 
-    ('jpeg_read_coefficients',
-        None,
-        (),
-        'jReadCoefs'),
     ('jpeg_write_coefficients',
         None,
-        (),
+        (j_compress_ptr, jvirt_barray_ptr),
         'jWrtCoefs'),
+    ('jpeg_read_coefficients',
+        jvirt_barray_ptr,
+        (j_decompress_ptr, ),
+        'jReadCoefs'),
 
-    ('jpeg_finish_decompress',
-        None,
-        (),
-        'jFinDecompress'),
     ('jpeg_finish_compress',
-        None,
-        (),
+        ctypes.c_int,
+        (j_compress_ptr,),
         'jFinCompress'),
+    ('jpeg_finish_decompress',
+        ctypes.c_int,
+        (j_decompress_ptr,),
+        'jFinDecompress'),
 
     ('jpeg_destroy_compress',
         None,
-        (),
+        (j_compress_ptr,),
         'jDestCompress'),
     ('jpeg_destroy_decompress',
         None,
-        (),
+        (j_decompress_ptr),
         'jDestDecompress'),
 )
 
@@ -523,12 +559,27 @@ for funcname, res, args, nickname in funcs_metadata:
 
 class JPEGImage(object):
     @classmethod
-    def getInstanceFromcinfo(cls, cinfo):
-        from IPython import embed
+    def open(cls, filename, readDCT=True):
+        f = open(filename, 'rb')
+        contents = f.read()
+        cinfo = jpeg_decompress_struct()
+        jerr = jpeg_error_mgr()
+        cinfo.err = funcs['jStdError'](ctypes.byref(jerr))
+        jerr.error_exit = error_exit
+        # infile = cfopen(b'lfs.jpg', b'rb')
+        funcs['jCreaDecompress'](
+            ctypes.byref(cinfo),
+            JPEG_LIB_VERSION, ctypes.sizeof(jpeg_decompress_struct)
+        )
+        # funcs['jStdSrc'](ctypes.byref(cinfo), infile)
+        funcs['jMemSrc'](ctypes.byref(cinfo), contents, len(contents))
+        funcs['jReadHeader'](ctypes.byref(cinfo), True)
+
         obj = cls()
         obj.size = (cinfo.image_width, cinfo.image_height)
         obj._color_space = cinfo.jpeg_color_space
         obj.progressive_mode = bool(cinfo.progressive_mode)
+
         # 颜色分量信息
         # 把指针转化为指向cinfo.num_components个jpeg_component_info结构体的指针
         obj.comp_infos = []
@@ -576,26 +627,69 @@ class JPEGImage(object):
                 obj.ac_huff_tbl.append(tbl)
 
         # DCT/RGB数据
-        embed()
+        if readDCT:
+            obj.data = []
+            coef_arrays = funcs['jReadCoefs'](ctypes.byref(cinfo))
+            CoefArraysType = ctypes.POINTER(jvirt_barray_ptr * cinfo.num_components)
+            coef_arrays = ctypes.cast(coef_arrays, CoefArraysType)
+            for i, coef_array in enumerate(coef_arrays.contents):
+                comp = obj.comp_infos[i]
+                block_array = coef_array.contents.mem_buffer
+                component_blocks = []
+                for nrow in range(comp['height_in_blocks']):
+                    block_row = cinfo.mem.contents.access_virt_barray(
+                        ctypes.cast(ctypes.byref(cinfo), j_common_ptr),
+                        coef_array, nrow, 1, int(False)
+                    )
+                    block_row = ctypes.cast(
+                        block_row.contents, ctypes.POINTER(
+                            JBLOCK * comp['width_in_blocks']
+                        )
+                    )
+                    for block in block_row.contents:
+                        component_blocks.append(list(block))
+                obj.data.append(component_blocks)
+        else:
+            obj.data = []
+            funcs['jStrtDecompress'](ctypes.byref(cinfo))
+            row_stride = cinfo.output_width * cinfo.output_components
+            buf = cinfo.mem.contents.alloc_sarray(
+                ctypes.cast(ctypes.byref(cinfo), j_common_ptr),
+                JPOOL_IMAGE, row_stride, 1
+            )
+            while cinfo.output_scanline < cinfo.output_height:
+                funcs['jReadScanlines'](
+                    ctypes.byref(cinfo), buf, 1
+                )
+                tbuf = ctypes.cast(
+                    buf.contents,
+                    ctypes.POINTER(JSAMPLE*row_stride)
+                )
+                for ncol in range(0, row_stride, 3):
+                    rgb = [_ for _ in tbuf.contents[ncol:ncol+3]]
+                    obj.data.append(rgb)
 
+        funcs['']
         return obj
 
+    ## 黑科技.强行解析地址.
+    # def getNextBlockPtr(block):
+    #     addr = ctypes.addressof(block)
+    #     addr += ctypes.sizeof(JBLOCK)
+    #     return ctypes.cast(addr, ctypes.POINTER(JBLOCK))
 
-def parse():
+    def copy(self):
+        obj = deepcopy(self)
+        return obj
+
+    def save(self, filename):
+        raise NotImplementedError
+
+
+def main():
     print(funcs.keys())
-    f = open('lfs.jpg', 'rb')
-    contents = f.read()
-    cinfo = jpeg_decompress_struct()
-    jerr = jpeg_error_mgr()
-    cinfo.err = funcs['jStdError'](ctypes.byref(jerr))
-    jerr.error_exit = error_exit
-    # infile = cfopen(b'lfs.jpg', b'rb')
-    print(ctypes.sizeof(jpeg_decompress_struct))
-    funcs['jCreaDecompress'](ctypes.byref(cinfo), JPEG_LIB_VERSION, ctypes.sizeof(jpeg_decompress_struct))
-    print(cinfo.global_state)
-    # funcs['jStdSrc'](ctypes.byref(cinfo), infile)
-    funcs['jMemSrc'](ctypes.byref(cinfo), contents, len(contents))
-    funcs['jReadHeader'](ctypes.byref(cinfo), True)
 
-    img = JPEGImage.getInstanceFromcinfo(cinfo)
-parse()
+    img = JPEGImage.open('lfs.jpg')
+
+if __name__ == '__main__':
+    main()
