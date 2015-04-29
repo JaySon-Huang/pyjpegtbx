@@ -669,7 +669,8 @@ class JPEGImage(object):
                     rgb = [_ for _ in tbuf.contents[ncol:ncol+3]]
                     obj.data.append(rgb)
 
-        funcs['']
+        funcs['jFinDecompress'](ctypes.byref(cinfo))
+        funcs['jDestDecompress'](ctypes.byref(cinfo))
         return obj
 
     ## 黑科技.强行解析地址.
