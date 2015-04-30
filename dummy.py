@@ -39,6 +39,13 @@ C_MAX_BLOCKS_IN_MCU = 10  # compressor's limit on blocks per MCU
 D_MAX_BLOCKS_IN_MCU = 10  # decompressor's limit on blocks per MCU
 JPEG_LIB_VERSION = 80  # Compatibility version 9.0
 JPOOL_IMAGE = 1
+class J_COLOR_SPACE(object):
+    JCS_UNKNOWN = 0
+    JCS_GRAYSCALE = 1
+    JCS_RGB = 2
+    JCS_YCbCr = 3
+    JCS_CMYK = 4
+    JCS_YCCK = 5
 
 # boolean is char : ctypes.c_char
 # JDIMENSION is unsigned int : ctypes.c_uint
@@ -714,8 +721,6 @@ class JPEGImage(object):
 
     def save(self, filename, quality=75):
         if self.mode == JPEGImage.MODE_RGB:
-            import pdb
-            # pdb.set_trace()
             cinfo = jpeg_compress_struct()
             jerr = jpeg_error_mgr()
             cinfo.err = funcs['jStdError'](ctypes.byref(jerr))
@@ -728,16 +733,15 @@ class JPEGImage(object):
             funcs['jStdDest'](ctypes.byref(cinfo), fp)
             cinfo.image_width, cinfo.image_height = self.size
             cinfo.input_components = 3
-            cinfo.in_color_space = self._color_space
+            cinfo.in_color_space = J_COLOR_SPACE.JCS_RGB
             funcs['jSetDefaults'](ctypes.byref(cinfo))
             funcs['jSetQuality'](ctypes.byref(cinfo), quality, int(True))
 
             funcs['jStrtCompress'](ctypes.byref(cinfo), int(True))
 
-            bdata = ''.join(
-                ''.join([chr(_) for _ in rgb])
-                for rgb in self.data
-            ).encode()
+            bdata = b''.join(
+                bytes(rgb) for rgb in self.data
+            )
             row_stride = cinfo.image_width * 3
             rowcnt = 0
             while rowcnt < cinfo.image_height:
@@ -750,15 +754,16 @@ class JPEGImage(object):
                 rowcnt += 1
             funcs['jFinCompress'](ctypes.byref(cinfo))
             funcs['jDestCompress'](ctypes.byref(cinfo))
+            # TODO: call c function `fclose`
         elif self.mode == JPEGImage.MODE_DCT:
             raise NotImplementedError
-        raise NotImplementedError
 
 
 def main():
     print(funcs.keys())
 
     img = JPEGImage.open('lfs.jpg', False)
+
     img.save('lfs_t.jpg')
 
 if __name__ == '__main__':
