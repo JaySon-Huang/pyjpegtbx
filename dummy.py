@@ -118,7 +118,7 @@ class jpeg_component_info(ctypes.Structure):
 
 class jpeg_compress_struct(ctypes.Structure):
     _fields_ = (
-        ('err', ctypes.c_void_p),
+        ('err', ctypes.POINTER(jpeg_error_mgr)),
         ('mem', ctypes.POINTER(jpeg_memory_mgr)),
         ('progress', ctypes.c_void_p),
         ('client_data', ctypes.c_void_p),
@@ -126,65 +126,89 @@ class jpeg_compress_struct(ctypes.Structure):
         ('global_state', ctypes.c_int),
 
         ('dest', ctypes.c_void_p),
+
         ('image_width', ctypes.c_uint),
         ('image_height', ctypes.c_uint),
         ('input_components', ctypes.c_int),
         ('in_color_space', ctypes.c_int),
+
         ('input_gamma', ctypes.c_double),
+
         ('scale_num', ctypes.c_uint),
         ('scale_denom', ctypes.c_uint),
+
         ('jpeg_width', ctypes.c_uint),
         ('jpeg_height', ctypes.c_uint),
+
         ('data_precision', ctypes.c_int),
+
         ('num_components', ctypes.c_int),
         ('jpeg_color_space', ctypes.c_int),
+
         ('comp_info', ctypes.POINTER(jpeg_component_info)),
+
         ('quant_tbl_ptrs', ctypes.POINTER(JQUANT_TBL) * NUM_QUANT_TBLS),
         ('q_scale_factor', ctypes.c_int * NUM_QUANT_TBLS),
+
         ('dc_huff_tbl_ptrs', ctypes.POINTER(JHUFF_TBL) * NUM_HUFF_TBLS),
         ('ac_huff_tbl_ptrs', ctypes.POINTER(JHUFF_TBL) * NUM_HUFF_TBLS),
+
         ('arith_dc_L', ctypes.c_uint8 * NUM_ARITH_TBLS),
         ('arith_dc_U', ctypes.c_uint8 * NUM_ARITH_TBLS),
         ('arith_ac_K', ctypes.c_uint8 * NUM_ARITH_TBLS),
+
         ('num_scans', ctypes.c_int),
         ('scan_info', ctypes.c_void_p),
-        ('raw_data_in', ctypes.c_char),
-        ('arith_code', ctypes.c_char),
-        ('optimize_coding', ctypes.c_char),
-        ('CCIR601_sampling', ctypes.c_char),
-        ('do_fancy_downsampling', ctypes.c_char),
+
+        ('raw_data_in', ctypes.c_int),
+        ('arith_code', ctypes.c_int),
+        ('optimize_coding', ctypes.c_int),
+        ('CCIR601_sampling', ctypes.c_int),
+        ('do_fancy_downsampling', ctypes.c_int),
         ('smoothing_factor', ctypes.c_int),
         ('dct_method', ctypes.c_void_p),
+
         ('restart_interval', ctypes.c_uint),
         ('restart_in_rows', ctypes.c_int),
-        ('write_JFIF_header', ctypes.c_char),
+
+        ('write_JFIF_header', ctypes.c_int),
         ('JFIF_major_version', ctypes.c_uint8),
         ('JFIF_minor_version', ctypes.c_uint8),
+
         ('density_unit', ctypes.c_uint8),
         ('X_density', ctypes.c_uint16),
         ('Y_density', ctypes.c_uint16),
-        ('write_Adobe_marker', ctypes.c_char),
-        ('color_transform', ctypes.c_int),
+        ('write_Adobe_marker', ctypes.c_int),
+
         ('next_scanline', ctypes.c_uint),
-        ('progressive_mode', ctypes.c_char),
+
+        ('progressive_mode', ctypes.c_int),
         ('max_h_samp_factor', ctypes.c_int),
         ('max_v_samp_factor', ctypes.c_int),
+
         ('min_DCT_h_scaled_size', ctypes.c_int),
         ('min_DCT_v_scaled_size', ctypes.c_int),
+
         ('total_iMCU_rows', ctypes.c_uint),
+
         ('comps_in_scan', ctypes.c_int),
         ('cur_comp_info', ctypes.c_void_p * MAX_COMPS_IN_SCAN),
+
         ('MCUs_per_row', ctypes.c_uint),
         ('MCU_rows_in_scan', ctypes.c_uint),
+
         ('blocks_in_MCU', ctypes.c_int),
         ('MCU_membership', ctypes.c_int * C_MAX_BLOCKS_IN_MCU),
+
         ('Ss', ctypes.c_int),
         ('Se', ctypes.c_int),
         ('Ah', ctypes.c_int),
         ('Al', ctypes.c_int),
+
         ('block_size', ctypes.c_int),
         ('natural_order', ctypes.POINTER(ctypes.c_int)),
         ('lim_Se', ctypes.c_int),
+
         ('master', ctypes.c_void_p),
         ('main', ctypes.c_void_p),
         ('prep', ctypes.c_void_p),
@@ -202,7 +226,7 @@ j_compress_ptr = ctypes.POINTER(jpeg_compress_struct)
 
 class jpeg_common_struct(ctypes.Structure):
     _fields_ = (
-        ('err', ctypes.c_void_p),
+        ('err', ctypes.POINTER(jpeg_error_mgr)),
         ('mem', ctypes.POINTER(jpeg_memory_mgr)),
         ('progress', ctypes.c_void_p),
         ('client_data', ctypes.c_void_p),
@@ -417,8 +441,8 @@ clongjmp.restype = None
 clongjmp.argtypes = (jmp_buf, ctypes.c_int)
 ERROR_EXIT_FUNC = ctypes.CFUNCTYPE(None, j_common_ptr)
 def py_error_exit(cinfo):
-    print('error_exit')
-    clongjmp(cinfo.err.setjmp_buffer, 1)
+    print('in calling error_exit')
+    # clongjmp(cinfo.contents.err.contents.setjmp_buffer, 1)
 error_exit = ERROR_EXIT_FUNC(py_error_exit)
 
 
@@ -485,13 +509,12 @@ funcs_metadata = (
     ('jpeg_mem_dest',
         None,
         (j_compress_ptr,
-            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_long)
-        ),
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_long)),
         'jMemDest'),
 
     ('jpeg_start_compress',
         None,
-        (),
+        (j_compress_ptr, ctypes.c_int),
         'jStrtCompress'),
     ('jpeg_start_decompress',
         ctypes.c_int,
@@ -500,7 +523,7 @@ funcs_metadata = (
 
     ('jpeg_set_defaults',
         None,
-        (j_compress_ptr,),
+        (j_compress_ptr, ),
         'jSetDefaults'),
     ('jpeg_set_quality',
         None,
@@ -508,7 +531,7 @@ funcs_metadata = (
         'jSetQuality'),
     ('jpeg_simple_progression',
         None,
-        (j_compress_ptr,),
+        (j_compress_ptr, ),
         'jSimProgress'),
 
     ('jpeg_read_header',
@@ -536,20 +559,20 @@ funcs_metadata = (
 
     ('jpeg_finish_compress',
         ctypes.c_int,
-        (j_compress_ptr,),
+        (j_compress_ptr, ),
         'jFinCompress'),
     ('jpeg_finish_decompress',
         ctypes.c_int,
-        (j_decompress_ptr,),
+        (j_decompress_ptr, ),
         'jFinDecompress'),
 
     ('jpeg_destroy_compress',
         None,
-        (j_compress_ptr,),
+        (j_compress_ptr, ),
         'jDestCompress'),
     ('jpeg_destroy_decompress',
         None,
-        (j_decompress_ptr),
+        (j_decompress_ptr, ),
         'jDestDecompress'),
 )
 
@@ -558,6 +581,10 @@ for funcname, res, args, nickname in funcs_metadata:
 
 
 class JPEGImage(object):
+
+    MODE_DCT = 1
+    MODE_RGB = 2
+
     @classmethod
     def open(cls, filename, readDCT=True):
         f = open(filename, 'rb')
@@ -628,6 +655,7 @@ class JPEGImage(object):
 
         # DCT/RGB数据
         if readDCT:
+            obj.mode = JPEGImage.MODE_DCT
             obj.data = []
             coef_arrays = funcs['jReadCoefs'](ctypes.byref(cinfo))
             CoefArraysType = ctypes.POINTER(jvirt_barray_ptr * cinfo.num_components)
@@ -650,6 +678,7 @@ class JPEGImage(object):
                         component_blocks.append(list(block))
                 obj.data.append(component_blocks)
         else:
+            obj.mode = JPEGImage.MODE_RGB
             obj.data = []
             funcs['jStrtDecompress'](ctypes.byref(cinfo))
             row_stride = cinfo.output_width * cinfo.output_components
@@ -683,14 +712,54 @@ class JPEGImage(object):
         obj = deepcopy(self)
         return obj
 
-    def save(self, filename):
+    def save(self, filename, quality=75):
+        if self.mode == JPEGImage.MODE_RGB:
+            import pdb
+            # pdb.set_trace()
+            cinfo = jpeg_compress_struct()
+            jerr = jpeg_error_mgr()
+            cinfo.err = funcs['jStdError'](ctypes.byref(jerr))
+            jerr.error_exit = error_exit
+            funcs['jCreaCompress'](
+                ctypes.byref(cinfo),
+                JPEG_LIB_VERSION, ctypes.sizeof(jpeg_compress_struct)
+            )
+            fp = cfopen(filename.encode(), b'wb')
+            funcs['jStdDest'](ctypes.byref(cinfo), fp)
+            cinfo.image_width, cinfo.image_height = self.size
+            cinfo.input_components = 3
+            cinfo.in_color_space = self._color_space
+            funcs['jSetDefaults'](ctypes.byref(cinfo))
+            funcs['jSetQuality'](ctypes.byref(cinfo), quality, int(True))
+
+            funcs['jStrtCompress'](ctypes.byref(cinfo), int(True))
+
+            bdata = ''.join(
+                ''.join([chr(_) for _ in rgb])
+                for rgb in self.data
+            ).encode()
+            row_stride = cinfo.image_width * 3
+            rowcnt = 0
+            while rowcnt < cinfo.image_height:
+                row = ctypes.create_string_buffer(bdata[rowcnt*row_stride:(rowcnt+1)*row_stride])
+                row_ptr = ctypes.cast(
+                    ctypes.pointer(ctypes.pointer(row)),
+                    JSAMPARRAY
+                )
+                funcs['jWrtScanlines'](ctypes.byref(cinfo), row_ptr, 1)
+                rowcnt += 1
+            funcs['jFinCompress'](ctypes.byref(cinfo))
+            funcs['jDestCompress'](ctypes.byref(cinfo))
+        elif self.mode == JPEGImage.MODE_DCT:
+            raise NotImplementedError
         raise NotImplementedError
 
 
 def main():
     print(funcs.keys())
 
-    img = JPEGImage.open('lfs.jpg')
+    img = JPEGImage.open('lfs.jpg', False)
+    img.save('lfs_t.jpg')
 
 if __name__ == '__main__':
     main()
