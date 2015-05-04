@@ -45,27 +45,18 @@ def jround_up(a, b):
     return a - (a % b)
 
 class J_COLOR_SPACE(object):
-    JCS_UNKNOWN = 0
-    JCS_GRAYSCALE = 1
-    JCS_RGB = 2
-    JCS_YCbCr = 3
-    JCS_CMYK = 4
-    JCS_YCCK = 5
+    JCS_UNKNOWN = 0     # error/unspecified
+    JCS_GRAYSCALE = 1   # monochrome
+    JCS_RGB = 2         # red/green/blue, standard RGB (sRGB)
+    JCS_YCbCr = 3       # Y/Cb/Cr (also known as YUV), standard YCC
+    JCS_CMYK = 4        # C/M/Y/K
+    JCS_YCCK = 5        # Y/Cb/Cr/K
+    JCS_BG_RGB = 6      # big gamut red/green/blue, bg-sRGB
+    JCS_BG_YCC = 7      # big gamut Y/Cb/Cr, bg-sYCC
 
 boolean = ctypes.c_int
 # boolean is char : ctypes.c_int
 # JDIMENSION is unsigned int : ctypes.c_uint
-
-# typedef enum {
-#     JCS_UNKNOWN,        /* error/unspecified */
-#     JCS_GRAYSCALE,      /* monochrome */
-#     JCS_RGB,        /* red/green/blue, standard RGB (sRGB) */
-#     JCS_YCbCr,      /* Y/Cb/Cr (also known as YUV), standard YCC */
-#     JCS_CMYK,       /* C/M/Y/K */
-#     JCS_YCCK,       /* Y/Cb/Cr/K */
-#     JCS_BG_RGB,     /* big gamut red/green/blue, bg-sRGB */
-#     JCS_BG_YCC      /* big gamut Y/Cb/Cr, bg-sYCC */
-# } J_COLOR_SPACE;
 
 JSAMPLE = ctypes.c_char
 JSAMPROW = ctypes.POINTER(JSAMPLE)
@@ -454,6 +445,10 @@ funcs = {}
 cfopen = _c.fopen
 cfopen.restype = ctypes.c_void_p
 cfopen.argtypes = (ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char))
+cfclose = _c.fclose
+cfclose.restype = None
+cfclose.argtypes = (ctypes.c_void_p, )
+
 csetjmp = _c.setjmp
 csetjmp.restype = ctypes.c_int
 csetjmp.argtypes = (jmp_buf,)
@@ -607,18 +602,19 @@ class JPEGImage(object):
     MODE_RGB = 2
 
     @classmethod
-    def open(cls, filename, readDCT=True):
+    def open(cls, filename, mode=JPEGImage.MODE_DCT):
         f = open(filename, 'rb')
         contents = f.read()
         cinfo = jpeg_decompress_struct()
         jerr = jpeg_error_mgr()
         cinfo.err = funcs['jStdError'](ctypes.byref(jerr))
         jerr.error_exit = error_exit
-        # infile = cfopen(b'lfs.jpg', b'rb')
         funcs['jCreaDecompress'](
             ctypes.byref(cinfo),
             JPEG_LIB_VERSION, ctypes.sizeof(jpeg_decompress_struct)
         )
+        ## use `jMemSrc` instead
+        # infile = cfopen(b'lfs.jpg', b'rb')
         # funcs['jStdSrc'](ctypes.byref(cinfo), infile)
         funcs['jMemSrc'](ctypes.byref(cinfo), contents, len(contents))
         funcs['jReadHeader'](ctypes.byref(cinfo), True)
@@ -675,9 +671,9 @@ class JPEGImage(object):
             else:
                 obj.ac_huff_tbl.append(tbl)
 
-        # DCT/RGB数据
-        if readDCT:
-            obj.mode = JPEGImage.MODE_DCT
+        # DCT/RGB data
+        obj.mode = mode
+        if mode == JPEGImage.MODE_DCT:
             obj.data = []
             coef_arrays = funcs['jReadCoefs'](ctypes.byref(cinfo))
             CoefArraysType = ctypes.POINTER(jvirt_barray_ptr * cinfo.num_components)
@@ -699,8 +695,7 @@ class JPEGImage(object):
                     for block in block_row.contents:
                         component_blocks.append(list(block))
                 obj.data.append(component_blocks)
-        else:
-            obj.mode = JPEGImage.MODE_RGB
+        elif mode == JPEGImage.MODE_RGB:
             obj.data = []
             funcs['jStrtDecompress'](ctypes.byref(cinfo))
             row_stride = cinfo.output_width * cinfo.output_components
@@ -769,9 +764,7 @@ class JPEGImage(object):
                 )
                 funcs['jWrtScanlines'](ctypes.byref(cinfo), row_ptr, 1)
                 rowcnt += 1
-            funcs['jFinCompress'](ctypes.byref(cinfo))
-            funcs['jDestCompress'](ctypes.byref(cinfo))
-            # TODO: call c function `fclose`
+
         elif self.mode == JPEGImage.MODE_DCT:
             cinfo.input_components = 3  # 3 for Y,Cr,Cb
             cinfo.jpeg_color_space = self._color_space
@@ -785,13 +778,16 @@ class JPEGImage(object):
             cinfo.num_components = 3
             cinfo.jpeg_width, cinfo.jpeg_height = self.size
 
-            # TODO: progressive_mode
+            if self.progressive_mode:
+                funcs['jSimProgress'](ctypes.byref(cinfo))
+
             min_h, min_v = 16, 16
             ComponentInfoArrayType = ctypes.POINTER(
                 cinfo.num_components * jpeg_component_info
             )
             comp_infos = ctypes.cast(cinfo.comp_info, ComponentInfoArrayType)
 
+            # set params to alloc coef arrays
             coef_arrays = ctypes.cast(
                 cinfo.mem.contents.alloc_small(
                     ctypes.cast(ctypes.byref(cinfo), j_common_ptr),
@@ -800,7 +796,8 @@ class JPEGImage(object):
                 ctypes.POINTER(jvirt_barray_ptr * cinfo.num_components)
             )
 
-            for i, (comp_info, coef_array) in enumerate(zip(comp_infos.contents, coef_arrays.contents)):
+            # `min_DCT_h(v)_scaled_size` must be filled
+            for i, comp_info in enumerate(comp_infos.contents):
                 comp_info.component_index = self.comp_infos[i]['component_index']
                 comp_info.component_id = self.comp_infos[i]['component_id']
                 comp_info.quant_tbl_no = self.comp_infos[i]['quant_tbl_no']
@@ -814,6 +811,7 @@ class JPEGImage(object):
                 comp_info.width_in_blocks = self.comp_infos[i]['width_in_blocks']
                 comp_info.height_in_blocks = self.comp_infos[i]['height_in_blocks']
 
+                # allocate the space of coef arrays
                 coef_array = cinfo.mem.contents.request_virt_barray(
                     ctypes.cast(ctypes.byref(cinfo), j_common_ptr),
                     JPOOL_IMAGE, int(True),
@@ -821,32 +819,60 @@ class JPEGImage(object):
                     jround_up(comp_info.height_in_blocks, comp_info.v_samp_factor),
                     comp_info.v_samp_factor
                 )
+                coef_arrays.contents.__setitem__(i, coef_array)
                 min_h = min(min_h, self.comp_infos[i]['DCT_h_scaled_size'])
                 min_v = min(min_v, self.comp_infos[i]['DCT_v_scaled_size'])
             cinfo.min_DCT_h_scaled_size = min_h
             cinfo.min_DCT_v_scaled_size = min_v
 
+            # realize virtual block arrays
             funcs['jWrtCoefs'](
                 ctypes.byref(cinfo),
                 ctypes.cast(coef_arrays, ctypes.POINTER(jvirt_barray_ptr))
             )
-            embed()
-            for comp_info, coef_array in zip(self.comp_infos, coef_arrays.contents):
+
+            # populate the array with the DCT coefficients
+            for i, (comp_info, coef_array) in enumerate(
+                zip(self.comp_infos, coef_arrays.contents)
+            ):
+
                 for nrow in range(comp_info['height_in_blocks']):
+
                     block_row = cinfo.mem.contents.access_virt_barray(
                         ctypes.cast(ctypes.byref(cinfo), j_common_ptr),
                         coef_array, nrow, 1, int(True)
                     )
-                    embed()
+                    block_row = ctypes.cast(
+                        block_row.contents, ctypes.POINTER(
+                            JBLOCK * comp_info['width_in_blocks']
+                        )
+                    )
+                    for ncol in range(comp_info['width_in_blocks']):
+                        block = JBLOCK()
+                        for j in range(DCTSIZE2):
+                            block[j] = \
+                                self.data[i][nrow*comp_info['width_in_blocks']+ncol][j]
+                        block_row.contents.__setitem__(
+                            ncol, block
+                        )
 
-            raise NotImplementedError
+            # get the quantization tables
+            for i, quant_table in enumerate(self.quant_tbls):
+                # type of quant_table is c_ushort_Array_64
+                for j in range(DCTSIZE2):
+                    cinfo.quant_tbl_ptrs[i].contents.quantval[j] = \
+                        self.quant_tbls[i]['quantval'][j]
+
+        # release resources
+        funcs['jFinCompress'](ctypes.byref(cinfo))
+        funcs['jDestCompress'](ctypes.byref(cinfo))
+        cfclose(fp)
 
 
 def main():
     print(funcs.keys())
 
-    img = JPEGImage.open('lfs.jpg', True)
-
+    img = JPEGImage.open('sos.jpg', True)
     img.save('lfs_t.jpg')
 
 if __name__ == '__main__':
