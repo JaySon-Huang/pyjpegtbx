@@ -13,9 +13,9 @@ _all_libs = (
 
 def __loadLib(liblst):
     found = False
-    for lib in liblst:
+    for libname in liblst:
         try:
-            _lib = ctypes.cdll.LoadLibrary('libjpeg.dylib')
+            _lib = ctypes.cdll.LoadLibrary(libname)
             found = True
             return _lib
         except OSError:
@@ -602,7 +602,7 @@ class JPEGImage(object):
     MODE_RGB = 2
 
     @classmethod
-    def open(cls, filename, mode=JPEGImage.MODE_DCT):
+    def open(cls, filename, mode=MODE_DCT):
         f = open(filename, 'rb')
         contents = f.read()
         cinfo = jpeg_decompress_struct()
@@ -871,8 +871,8 @@ class JPEGImage(object):
 
 def main():
     print(funcs.keys())
-
-    img = JPEGImage.open('sos.jpg', True)
+    embed()
+    img = JPEGImage.open('lfs.jpg', True)
     img.save('lfs_t.jpg')
 
 if __name__ == '__main__':
