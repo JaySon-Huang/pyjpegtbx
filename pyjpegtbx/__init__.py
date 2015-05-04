@@ -21,7 +21,6 @@ __all__ = [
 
 def py_error_exit(cinfo):
     print('in calling error_exit')
-    # clongjmp(cinfo.contents.err.contents.setjmp_buffer, 1)
 error_exit = ERROR_EXIT_FUNC(py_error_exit)
 
 
@@ -146,12 +145,6 @@ class JPEGImage(object):
         jfuncs['jFinDecompress'](ctypes.byref(cinfo))
         jfuncs['jDestDecompress'](ctypes.byref(cinfo))
         return obj
-
-    ## 黑科技.强行解析地址.
-    # def getNextBlockPtr(block):
-    #     addr = ctypes.addressof(block)
-    #     addr += ctypes.sizeof(JBLOCK)
-    #     return ctypes.cast(addr, ctypes.POINTER(JBLOCK))
 
     def copy(self):
         return deepcopy(self)
