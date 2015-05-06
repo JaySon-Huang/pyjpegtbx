@@ -41,7 +41,9 @@ def jround_up(a, b):
 
 cfopen = _c.fopen
 cfopen.restype = ctypes.c_void_p
-cfopen.argtypes = (ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char))
+cfopen.argtypes = (
+    ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)
+)
 cfclose = _c.fclose
 cfclose.restype = None
 cfclose.argtypes = (ctypes.c_void_p, )
@@ -95,7 +97,8 @@ funcs_metadata = (
     ('jpeg_mem_dest',
         None,
         (j_compress_ptr,
-            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_long)),
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_char)),
+            ctypes.POINTER(ctypes.c_long)),
         'jMemDest'),
 
     ('jpeg_start_compress',
