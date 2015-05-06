@@ -4,7 +4,10 @@
 import ctypes
 from copy import deepcopy
 
-from .constants import JPEG_LIB_VERSION, JPOOL_IMAGE, DCTSIZE2
+from .constants import (
+    JPEG_LIB_VERSION, JPOOL_IMAGE, DCTSIZE2,
+    DESCRIPTIONS_OF_J_COLOR_SAPCE,
+)
 from .structs import (
     ERROR_EXIT_FUNC,
     JSAMPLE, JSAMPARRAY, JBLOCK, J_COLOR_SPACE,
@@ -287,3 +290,6 @@ class JPEGImage(object):
         jfuncs['jFinCompress'](ctypes.byref(cinfo))
         jfuncs['jDestCompress'](ctypes.byref(cinfo))
         cfclose(fp)
+
+    def color_space_description(self):
+        return DESCRIPTIONS_OF_J_COLOR_SAPCE[self._color_space]

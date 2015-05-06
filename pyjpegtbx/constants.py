@@ -12,3 +12,16 @@ C_MAX_BLOCKS_IN_MCU = 10  # compressor's limit on blocks per MCU
 D_MAX_BLOCKS_IN_MCU = 10  # decompressor's limit on blocks per MCU
 JPEG_LIB_VERSION = 80  # Compatibility version 8.0
 JPOOL_IMAGE = 1
+
+from .structs import J_COLOR_SPACE
+
+DESCRIPTIONS_OF_J_COLOR_SAPCE = {
+    J_COLOR_SPACE.JCS_UNKNOWN: 'error/unspecified',
+    J_COLOR_SPACE.JCS_GRAYSCALE: 'monochrome',
+    J_COLOR_SPACE.JCS_RGB: 'red/green/blue, standard RGB (sRGB)',
+    J_COLOR_SPACE.JCS_YCbCr: 'Y/Cb/Cr (also known as YUV), standard YCC',
+    J_COLOR_SPACE.JCS_CMYK: 'C/M/Y/K',
+    J_COLOR_SPACE.JCS_YCCK: 'Y/Cb/Cr/K',
+    J_COLOR_SPACE.JCS_BG_RGB: 'big gamut red/green/blue, bg-sRGB',
+    J_COLOR_SPACE.JCS_BG_YCC: 'big gamut Y/Cb/Cr, bg-sYCC',
+}
