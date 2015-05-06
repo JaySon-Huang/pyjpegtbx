@@ -8,7 +8,7 @@ import hashlib
 
 from pyjpegtbx import JPEGImage
 # from JPEGImageCipher import JPEGImageCipher0 as JPEGImageCipher
-from JPEGImageCipher import JPEGImageCipher1 as JPEGImageCipher
+from cipher.JPEGImageCipher import JPEGImageCipher1 as JPEGImageCipher
 
 from PyQt5.QtCore import (
     QDir, Qt, QVariant
@@ -22,8 +22,8 @@ from PyQt5.QtGui import (
     QPixmap, QStandardItemModel, QStandardItem
 )
 
-from GridWidget import GridWidget
-from ui_MainWindow import Ui_MainWindow
+from widgets.GridWidget import GridWidget
+from widgets.ui_MainWindow import Ui_MainWindow
 
 pics = ['lfs.jpg', 'tmp0.jpg', 'tmp1.jpg']
 
