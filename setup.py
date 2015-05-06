@@ -1,18 +1,12 @@
-from distutils.core import setup, Extension
+from distutils.core import setup
 
 setup(
     name="pyjpegtbx",
     version="1.0",
     author="JaySon Hwang",
     author_email="jayson.hjs@gmail.com",
+    description="",
+    url="",
 
-    ext_modules=[
-        Extension(
-            name="pyjpegtbx",
-            sources=["jpegparser.c"],
-            include_dirs=['/usr/include', '/usr/local/include'],
-            library_dirs=['/usr/lib', '/usr/local/lib'],
-            libraries=['jpeg'],
-        )
-    ]
+    packages=['pyjpegtbx'],
 )
