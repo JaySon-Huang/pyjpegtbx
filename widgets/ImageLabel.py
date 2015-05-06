@@ -26,7 +26,6 @@ class ImageLabel(QLabel):
     def __init__(self, text=None, parent=None):
         super().__init__(parent)
         self.filepath = None
-        self.setCursor(Qt.PointingHandCursor)
 
     def setImage(self, filepath, width, height):
         self.filepath = filepath
@@ -35,6 +34,8 @@ class ImageLabel(QLabel):
             width, height, Qt.KeepAspectRatio
         )
         self.setPixmap(pic)
+        # 修改鼠标样式
+        self.setCursor(Qt.PointingHandCursor)
 
     def mousePressEvent(self, ev):
         if self.filepath:

@@ -75,7 +75,8 @@ class MainWindow(QMainWindow):
         ui.btn_enterPassword.clicked.connect(
             self.btn_enterPassword_clicked
         )
-        libfiles = [os.path.join(self.paths['library'], _)
+        libfiles = [
+            os.path.join(self.paths['library'], _)
             for _ in os.listdir(self.paths['library'])
         ]
         print('files', libfiles)
@@ -87,7 +88,8 @@ class MainWindow(QMainWindow):
 
         for i, filepath in enumerate(libfiles):
             col = i % self.properties['columnSize']
-            row = i / self.properties['columnSize']
+            row = i // self.properties['columnSize']
+            print(type(col), type(row))
             widget = GridWidget(ui.scrollAreaWidgetContents)
             sp.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
             widget.setSizePolicy(sp)
@@ -99,7 +101,7 @@ class MainWindow(QMainWindow):
         while i < 11:
             i += 1
             col = i % self.properties['columnSize']
-            row = i / self.properties['columnSize']
+            row = i // self.properties['columnSize']
             widget = GridWidget(ui.scrollAreaWidgetContents)
             sp.setHeightForWidth(widget.sizePolicy().hasHeightForWidth())
             widget.setSizePolicy(sp)
