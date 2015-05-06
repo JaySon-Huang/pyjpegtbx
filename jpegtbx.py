@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
         '''
         if filepath:
             self.loaded['oriFilepath'] = filepath
-            img = JPEGImage(filepath)
+            img = JPEGImage.open(filepath)
             self.loaded['oriImage'] = img
             ui.lb_oriFilename.setText(
                 self.strings['filename'] % (
@@ -171,18 +171,18 @@ class MainWindow(QMainWindow):
                     QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
             ui.lb_oriHuffTbls.setText(
                 self.strings['huffman'] % (
-                    len(img.dc_huff_tables),
-                    len(img.ac_huff_tables)
+                    len(img.dc_huff_tbls),
+                    len(img.ac_huff_tbls)
                     )
             )
-            for i, hufftbl in enumerate(img.dc_huff_tables):
+            for i, hufftbl in enumerate(img.dc_huff_tbls):
                 topItem = QTreeWidgetItem(
                     ui.treeWidget_oriHuffTbls,
                     [str(i), 'type', 'DC']
                 )
                 for key in hufftbl:
                     QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            for i, hufftbl in enumerate(img.ac_huff_tables):
+            for i, hufftbl in enumerate(img.ac_huff_tbls):
                 topItem = QTreeWidgetItem(
                     ui.treeWidget_oriHuffTbls,
                     [str(i), 'type', 'AC']
@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
     def __loadDstPhoto(self, ui, filepath):
         if filepath:
             self.loaded['dstFilepath'] = filepath
-            img = JPEGImage(filepath)
+            img = JPEGImage.open(filepath)
             self.loaded['dstImage'] = img
             ui.lb_dstFilename.setText(
                 self.strings['filename'] % (
@@ -253,18 +253,18 @@ class MainWindow(QMainWindow):
                     QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
             ui.lb_dstHuffTbls.setText(
                 self.strings['huffman'] % (
-                    len(img.dc_huff_tables),
-                    len(img.ac_huff_tables)
+                    len(img.dc_huff_tbls),
+                    len(img.ac_huff_tbls)
                     )
             )
-            for i, hufftbl in enumerate(img.dc_huff_tables):
+            for i, hufftbl in enumerate(img.dc_huff_tbls):
                 topItem = QTreeWidgetItem(
                     ui.treeWidget_dstHuffTbls,
                     [str(i), 'type', 'DC']
                 )
                 for key in hufftbl:
                     QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            for i, hufftbl in enumerate(img.ac_huff_tables):
+            for i, hufftbl in enumerate(img.ac_huff_tbls):
                 topItem = QTreeWidgetItem(
                     ui.treeWidget_dstHuffTbls,
                     [str(i), 'type', 'AC']
@@ -353,7 +353,8 @@ class MainWindow(QMainWindow):
         self.loaded['dstFilepath'] = os.path.join(
             self.paths['tmp'], os.path.basename(self.loaded['oriFilepath'])
         )
-        print('save encrypted/decrypted image to temp file:',
+        print(
+            'save encrypted/decrypted image to temp file:',
             self.loaded['dstFilepath']
         )
         self.loaded['dstImage'].save(self.loaded['dstFilepath'])
