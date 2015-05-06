@@ -392,5 +392,5 @@ class Ui_MainWindow(object):
         self.actionOpen.setStatusTip(_translate("MainWindow", "Open file..."))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+F"))
 
-from ImageLabel import ImageLabel
-from AdaptiveTreeWidget import AdaptiveTreeWidget
+from .ImageLabel import ImageLabel
+from .AdaptiveTreeWidget import AdaptiveTreeWidget

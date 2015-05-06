@@ -9,7 +9,7 @@ import os
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPixmap, QPalette, QColor
-from ui_GirdWidget import Ui_GirdWidget
+from .ui_GirdWidget import Ui_GirdWidget
 
 
 class GridWidget(QWidget):

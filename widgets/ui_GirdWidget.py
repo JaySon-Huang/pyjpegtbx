@@ -45,4 +45,4 @@ class Ui_GirdWidget(object):
         self.lb_preview.setText(_translate("GirdWidget", "PictureLabel"))
         self.lb_filename.setText(_translate("GirdWidget", "Filename"))
 
-from ImageLabel import ImageLabel
+from .ImageLabel import ImageLabel
