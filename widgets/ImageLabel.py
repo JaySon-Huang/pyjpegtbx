@@ -6,7 +6,7 @@ ImageLabel - 点击可以显示原图大小尺寸图片的QLabel子类.
 DoubleClickableLabel - 监听双击事件, emit doubleClicked signal 的QLabel子类
 '''
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QByteArray
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QDialog
 
@@ -28,8 +28,8 @@ class ImageLabel(QLabel):
         self.filepath = None
 
     def setImage(self, filepath, width, height):
-        self.filepath = filepath
         pic = QPixmap(filepath)
+        self.pixmap = pic
         pic = pic.scaled(
             width, height, Qt.KeepAspectRatio
         )
@@ -37,8 +37,18 @@ class ImageLabel(QLabel):
         # 修改鼠标样式
         self.setCursor(Qt.PointingHandCursor)
 
+    def setImageMemSrc(self, img, width, height):
+        pic = QPixmap()
+        pic.loadFromData(img.save2Bytes())
+        self.pixmap = pic
+        pic = pic.scaled(
+            width, height, Qt.KeepAspectRatio
+        )
+        self.setPixmap(pic)
+        self.setCursor(Qt.PointingHandCursor)
+
     def mousePressEvent(self, ev):
-        if self.filepath:
+        if self.pixmap:
             self.w = QDialog(parent=self)
             layout = QVBoxLayout()
             layout.setContentsMargins(0, 0, 0, 0)
@@ -47,7 +57,7 @@ class ImageLabel(QLabel):
             # 弹出窗口的内容
             # view = QLabel()
             view = DoubleClickableLabel()
-            pic = QPixmap(self.filepath)
+            pic = QPixmap(self.pixmap)
             view.setPixmap(pic)
             view.doubleClicked.connect(
                 self.w.close
