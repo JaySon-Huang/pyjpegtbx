@@ -58,7 +58,7 @@ def compare_images(filename, compare_filename, diff_filename=None):
         difference_img.show()  # 直接显示图片
         return difference_img
     else:
-        difference_img.save(diff_filename, 'JPEG', quality=90)
+        difference_img.save(diff_filename, quality=90)
 
 
 if __name__ == '__main__':
