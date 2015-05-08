@@ -27,7 +27,6 @@ def make_difference(image, restruct_image, highlight_img):
             if d0[w, h] != d1[w, h]:
                 newVals = [255, ]
                 newVals.extend(map(lambda x: x//3, oriVals[1:]))
-                print(oriVals, newVals)
                 difference_img.putpixel((w, h), tuple(newVals))
                 if DEBUG:
                     cnt += 1
