@@ -38,6 +38,9 @@ class MainWindow(QMainWindow):
     }
     # static strings
     strings = {
+        'format': {
+            'extract': 'Message extract:\n%s',
+        },
     }
     # static paths
     paths = {
@@ -134,6 +137,7 @@ class MainWindow(QMainWindow):
 
         ui.saContents_ori.setTitle('Original')
         ui.saContents_dst.setTitle('Destination')
+        ui.lb_msg.setText('')
         # 更新当前是否同步滚动
         self.setScrollMode(ui.ckbox_scrollMode.checkState())
         # self.__loadOriPhoto(ui, pics[0])  # for debug
@@ -229,7 +233,12 @@ class MainWindow(QMainWindow):
         self.__loadDstPhotoFromImage(self.ui, None)
         cipher = JPEGImageCipher(self.seed)
         if toEmbMessage:
-            bdata = b'Attack at dawn'
+            msg, isOK = QInputDialog.getMultiLineText(
+                self, 'Enter the message you want to emb',
+                'Message:'
+            )
+            bdata = msg.encode('utf-8')
+            print('get `%s`<=>`%s` from input dialog' % (msg, bdata))
             img = cipher.encrtptAndEmbData(self.loaded['oriImage'], bdata)
         else:
             img = cipher.encrypt(self.loaded['oriImage'])
@@ -247,7 +256,11 @@ class MainWindow(QMainWindow):
         cipher = JPEGImageCipher(self.seed)
         if toExtractMessage:
             img, bdata = cipher.decryptAndExtractData(self.loaded['oriImage'])
-            print('The message extract is:', bdata)
+            msg = bdata.decode('utf-8')
+            print('The message extract is:`%s`<=>`%s`' % (bdata, msg))
+            self.ui.lb_msg.setText(
+                self.strings['format']['extract'] % msg
+            )
         else:
             img = cipher.decrypt(self.loaded['oriImage'])
         ## 先保存临时文件, 再载入临时文件显示图片 ##
