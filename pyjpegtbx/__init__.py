@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #encoding=utf-8
 
+import os
 import ctypes
 from copy import deepcopy
 
@@ -33,7 +34,7 @@ class JPEGImage(object):
     MODE_RGB = 2
 
     @classmethod
-    def open(cls, filename, mode=MODE_DCT):
+    def open(cls, filepath, mode=MODE_DCT):
         f = open(filename, 'rb')
         contents = f.read()
         cinfo = jpeg_decompress_struct()
@@ -51,6 +52,9 @@ class JPEGImage(object):
         jfuncs['jReadHeader'](ctypes.byref(cinfo), True)
 
         obj = cls()
+        obj.filename = os.path.basename(filepath)
+        obj.filepath = os.path.abspath(filepath)
+
         obj.size = (cinfo.image_width, cinfo.image_height)
         obj._color_space = cinfo.jpeg_color_space
         obj.progressive_mode = bool(cinfo.progressive_mode)
@@ -280,7 +284,7 @@ class JPEGImage(object):
                     cinfo.quant_tbl_ptrs[i].contents.quantval[j] = \
                         self.quant_tbls[i]['quantval'][j]
 
-    def save(self, filename, quality=75):
+    def save(self, filepath, quality=75):
         cinfo = jpeg_compress_struct()
         jerr = jpeg_error_mgr()
         cinfo.err = jfuncs['jStdError'](ctypes.byref(jerr))
@@ -289,7 +293,7 @@ class JPEGImage(object):
             ctypes.byref(cinfo),
             JPEG_LIB_VERSION, ctypes.sizeof(jpeg_compress_struct)
         )
-        fp = cfopen(filename.encode(), b'wb')
+        fp = cfopen(filepath.encode(), b'wb')
         jfuncs['jStdDest'](ctypes.byref(cinfo), fp)
         self.__setcinfo(cinfo)
         # release resources
