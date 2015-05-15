@@ -6,7 +6,7 @@ ImageLabel - 点击可以显示原图大小尺寸图片的QLabel子类.
 DoubleClickableLabel - 监听双击事件, emit doubleClicked signal 的QLabel子类
 '''
 
-from PyQt5.QtCore import Qt, pyqtSignal, QByteArray
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QDialog
 

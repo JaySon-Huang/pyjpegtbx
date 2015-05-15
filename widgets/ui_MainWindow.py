@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'src/ui_MainWindow.ui'
 #
-# Created: Fri May 15 23:20:31 2015
+# Created: Sat May 16 02:19:44 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -129,50 +129,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.addWidget(self.scrollArea_dst)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.tabWidget.addTab(self.tab_addPhoto, "")
-        self.tab_comparePhoto = QtWidgets.QWidget()
+        self.tab_comparePhoto = ComparePhotoTab()
         self.tab_comparePhoto.setObjectName("tab_comparePhoto")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tab_comparePhoto)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.btn_loadOriImage = QtWidgets.QPushButton(self.tab_comparePhoto)
-        self.btn_loadOriImage.setObjectName("btn_loadOriImage")
-        self.horizontalLayout_2.addWidget(self.btn_loadOriImage)
-        self.btn_loadCmpImage = QtWidgets.QPushButton(self.tab_comparePhoto)
-        self.btn_loadCmpImage.setObjectName("btn_loadCmpImage")
-        self.horizontalLayout_2.addWidget(self.btn_loadCmpImage)
-        spacerItem7 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_2.addItem(spacerItem7)
-        self.btn_compareImage = QtWidgets.QPushButton(self.tab_comparePhoto)
-        self.btn_compareImage.setObjectName("btn_compareImage")
-        self.horizontalLayout_2.addWidget(self.btn_compareImage)
-        self.btn_saveCmpResult = QtWidgets.QPushButton(self.tab_comparePhoto)
-        self.btn_saveCmpResult.setObjectName("btn_saveCmpResult")
-        self.horizontalLayout_2.addWidget(self.btn_saveCmpResult)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_2)
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.lb_oriImage = ImageLabel(self.tab_comparePhoto)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lb_oriImage.sizePolicy().hasHeightForWidth())
-        self.lb_oriImage.setSizePolicy(sizePolicy)
-        self.lb_oriImage.setMinimumSize(QtCore.QSize(300, 300))
-        self.lb_oriImage.setAlignment(QtCore.Qt.AlignCenter)
-        self.lb_oriImage.setObjectName("lb_oriImage")
-        self.horizontalLayout_4.addWidget(self.lb_oriImage)
-        self.lb_cmpImage = ImageLabel(self.tab_comparePhoto)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lb_cmpImage.sizePolicy().hasHeightForWidth())
-        self.lb_cmpImage.setSizePolicy(sizePolicy)
-        self.lb_cmpImage.setMinimumSize(QtCore.QSize(300, 300))
-        self.lb_cmpImage.setAlignment(QtCore.Qt.AlignCenter)
-        self.lb_cmpImage.setObjectName("lb_cmpImage")
-        self.horizontalLayout_4.addWidget(self.lb_cmpImage)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.tabWidget.addTab(self.tab_comparePhoto, "")
         self.horizontalLayout.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -217,14 +175,6 @@ class Ui_MainWindow(object):
         self.lb_msg.setText(_translate("MainWindow", "TextLabel"))
         self.btn_saveToLibrary.setText(_translate("MainWindow", "Save to Library"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_addPhoto), _translate("MainWindow", "Add Photo"))
-        self.btn_loadOriImage.setText(_translate("MainWindow", "Load Original \n"
-"Image"))
-        self.btn_loadCmpImage.setText(_translate("MainWindow", "Load Compared \n"
-"Image"))
-        self.btn_compareImage.setText(_translate("MainWindow", "Compare"))
-        self.btn_saveCmpResult.setText(_translate("MainWindow", "Save Compare"))
-        self.lb_oriImage.setText(_translate("MainWindow", "Original Image Label"))
-        self.lb_cmpImage.setText(_translate("MainWindow", "Compared Image Label"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_comparePhoto), _translate("MainWindow", "Compare Photo"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.menuAbout.setTitle(_translate("MainWindow", "About"))
@@ -235,5 +185,5 @@ class Ui_MainWindow(object):
         self.actionOpen.setStatusTip(_translate("MainWindow", "Open file..."))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+F"))
 
-from widgets.ImageLabel import ImageLabel
 from widgets.ImageDetailArea import ImageDetailArea
+from widgets.ComparePhotoTab import ComparePhotoTab

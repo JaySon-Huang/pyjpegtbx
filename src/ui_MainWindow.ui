@@ -321,107 +321,10 @@ message =&gt;</string>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_comparePhoto">
+      <widget class="ComparePhotoTab" name="tab_comparePhoto">
        <attribute name="title">
         <string>Compare Photo</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
-           <widget class="QPushButton" name="btn_loadOriImage">
-            <property name="text">
-             <string>Load Original 
-Image</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_loadCmpImage">
-            <property name="text">
-             <string>Load Compared 
-Image</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_compareImage">
-            <property name="text">
-             <string>Compare</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btn_saveCmpResult">
-            <property name="text">
-             <string>Save Compare</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <item>
-           <widget class="ImageLabel" name="lb_oriImage">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Original Image Label</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="ImageLabel" name="lb_cmpImage">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>300</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Compared Image Label</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
       </widget>
      </widget>
     </item>
@@ -478,14 +381,15 @@ Image</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ImageLabel</class>
-   <extends>QLabel</extends>
-   <header>widgets/ImageLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>ImageDetailArea</class>
    <extends>QWidget</extends>
    <header>widgets/ImageDetailArea.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ComparePhotoTab</class>
+   <extends>QWidget</extends>
+   <header>widgets/ComparePhotoTab.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
