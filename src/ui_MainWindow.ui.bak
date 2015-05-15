@@ -141,19 +141,197 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
-           <widget class="ImageDetailScrollArea" name="scrollArea_3">
+           <widget class="QScrollArea" name="scrollArea_leftPhoto">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents_3">
+            <widget class="QWidget" name="scrollAreaWidgetContents_2">
              <property name="geometry">
               <rect>
                <x>0</x>
                <y>0</y>
                <width>357</width>
-               <height>544</height>
+               <height>1002</height>
               </rect>
              </property>
+             <layout class="QVBoxLayout" name="verticalLayout_3">
+              <item>
+               <widget class="QLabel" name="label">
+                <property name="text">
+                 <string>Original</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QLabel" name="lb_oriFilename">
+                  <property name="text">
+                   <string>文件：</string>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lb_oriSize">
+                  <property name="text">
+                   <string>尺寸：</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="ImageLabel" name="lb_oriImage">
+                <property name="minimumSize">
+                 <size>
+                  <width>250</width>
+                  <height>250</height>
+                 </size>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="text">
+                 <string>ImageLabel</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="lb_oriComponents">
+                <property name="text">
+                 <string>颜色分量</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="AdaptiveTreeWidget" name="treeWidget_oriComponents">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>false</bool>
+                </property>
+                <property name="headerHidden">
+                 <bool>false</bool>
+                </property>
+                <property name="columnCount">
+                 <number>3</number>
+                </property>
+                <attribute name="headerDefaultSectionSize">
+                 <number>100</number>
+                </attribute>
+                <attribute name="headerShowSortIndicator" stdset="0">
+                 <bool>false</bool>
+                </attribute>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                 <property name="textAlignment">
+                  <set>AlignLeft|AlignVCenter</set>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Property</string>
+                 </property>
+                 <property name="textAlignment">
+                  <set>AlignLeft|AlignVCenter</set>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="lb_oriQuantTbls">
+                <property name="text">
+                 <string>量化表</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="AdaptiveTreeWidget" name="treeWidget_oriQuantTbls">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Property</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="lb_oriHuffTbls">
+                <property name="text">
+                 <string>哈夫曼表</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="AdaptiveTreeWidget" name="treeWidget_oriHuffTbls">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Property</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </widget>
           </item>
@@ -282,19 +460,197 @@
            </layout>
           </item>
           <item>
-           <widget class="ImageDetailScrollArea" name="scrollArea_2">
+           <widget class="QScrollArea" name="scrollArea_rightPhoto">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents_2">
+            <widget class="QWidget" name="scrollAreaWidgetContents_3">
              <property name="geometry">
               <rect>
                <x>0</x>
                <y>0</y>
                <width>357</width>
-               <height>544</height>
+               <height>1002</height>
               </rect>
              </property>
+             <layout class="QVBoxLayout" name="verticalLayout_4">
+              <item>
+               <widget class="QLabel" name="label_2">
+                <property name="text">
+                 <string>Encrypted</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <item>
+                 <widget class="QLabel" name="lb_dstFilename">
+                  <property name="text">
+                   <string>文件：</string>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lb_dstSize">
+                  <property name="text">
+                   <string>尺寸：</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="ImageLabel" name="lb_dstImage">
+                <property name="minimumSize">
+                 <size>
+                  <width>250</width>
+                  <height>250</height>
+                 </size>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="text">
+                 <string>ImageLabel</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="lb_dstComponents">
+                <property name="text">
+                 <string>颜色分量</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="AdaptiveTreeWidget" name="treeWidget_dstComponents">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>false</bool>
+                </property>
+                <property name="headerHidden">
+                 <bool>false</bool>
+                </property>
+                <property name="columnCount">
+                 <number>3</number>
+                </property>
+                <attribute name="headerDefaultSectionSize">
+                 <number>100</number>
+                </attribute>
+                <attribute name="headerShowSortIndicator" stdset="0">
+                 <bool>false</bool>
+                </attribute>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                 <property name="textAlignment">
+                  <set>AlignLeft|AlignVCenter</set>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Property</string>
+                 </property>
+                 <property name="textAlignment">
+                  <set>AlignLeft|AlignVCenter</set>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="lb_dstQuantTbls">
+                <property name="text">
+                 <string>量化表</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="AdaptiveTreeWidget" name="treeWidget_dstQuantTbls">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Property</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="lb_dstHuffTbls">
+                <property name="text">
+                 <string>哈夫曼表</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="AdaptiveTreeWidget" name="treeWidget_dstHuffTbls">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>ID</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Property</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Value</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </widget>
           </item>
@@ -511,15 +867,14 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>ImageLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/ImageLabel.h</header>
+  </customwidget>
+  <customwidget>
    <class>AdaptiveTreeWidget</class>
    <extends>QTreeWidget</extends>
    <header>widgets/AdaptiveTreeWidget.h</header>
-  </customwidget>
-  <customwidget>
-   <class>ImageDetailScrollArea</class>
-   <extends>QScrollArea</extends>
-   <header>widgets/ImageDetailScrollArea.h</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
