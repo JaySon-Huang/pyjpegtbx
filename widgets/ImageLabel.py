@@ -27,7 +27,7 @@ class ImageLabel(QLabel):
         super().__init__(parent)
         self.filepath = None
 
-    def setImage(self, filepath, width, height):
+    def setImageFileSrc(self, filepath, width, height):
         pic = QPixmap(filepath)
         self.pixmap = pic
         pic = pic.scaled(
@@ -46,6 +46,9 @@ class ImageLabel(QLabel):
         )
         self.setPixmap(pic)
         self.setCursor(Qt.PointingHandCursor)
+
+    def clear(self):
+        self.pixmap = None
 
     def mousePressEvent(self, ev):
         if self.pixmap:

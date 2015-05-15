@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, pyqtSignal, QRect, QSize
 from PyQt5.QtWidgets import (
-    QScrollArea, QLabel, QWidget, QTreeWidgetItem,
+    QLabel, QWidget, QTreeWidgetItem, QHeaderView,
     QVBoxLayout, QHBoxLayout,
 )
 
@@ -8,10 +8,11 @@ from .ImageLabel import ImageLabel
 from .AdaptiveTreeWidget import AdaptiveTreeWidget
 
 
-class ImageDetailScrollArea(QScrollArea):
+class ImageDetailArea(QWidget):
 
     # signal
     imageLoaded = pyqtSignal()
+    imageCleared = pyqtSignal()
 
     # static strings
     strings = {
@@ -29,66 +30,92 @@ class ImageDetailScrollArea(QScrollArea):
             ],
     }
 
-    def __init__(self, title, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWidgetResizable(True)
-        self.setObjectName("scrollArea")
-        self.scrollAreaWidgetContents = QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 380, 680))
-        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-
-        self.verticalLayout = QVBoxLayout(self.scrollAreaWidgetContents)
+        self.verticalLayout = QVBoxLayout(self)
         self.verticalLayout.setObjectName("verticalLayout")
         # title
-        self.lb_title = QLabel(self.scrollAreaWidgetContents)
+        self.lb_title = QLabel(self)
         self.lb_title.setAlignment(Qt.AlignCenter)
         self.lb_title.setObjectName("lb_title")
         self.verticalLayout.addWidget(self.lb_title)
         # filename && size
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.lb_filename = QLabel(self.scrollAreaWidgetContents)
+        self.lb_filename = QLabel(self)
         self.lb_filename.setObjectName("lb_filename")
         self.horizontalLayout.addWidget(self.lb_filename)
-        self.lb_size = QLabel(self.scrollAreaWidgetContents)
+        self.lb_size = QLabel(self)
         self.lb_size.setObjectName("lb_size")
         self.horizontalLayout.addWidget(self.lb_size)
         self.verticalLayout.addLayout(self.horizontalLayout)
         # image preview
-        self.lb_image = ImageLabel(self.scrollAreaWidgetContents)
+        self.lb_image = ImageLabel(self)
         self.lb_image.setMinimumSize(QSize(250, 250))
         self.lb_image.setAlignment(Qt.AlignCenter)
         self.lb_image.setObjectName("lb_image")
         self.verticalLayout.addWidget(self.lb_image)
         # components
-        self.lb_components = QLabel(self.scrollAreaWidgetContents)
+        self.lb_components = QLabel(self)
         self.lb_components.setObjectName("lb_components")
         self.verticalLayout.addWidget(self.lb_components)
-        self.treeWidget_components = AdaptiveTreeWidget(self.scrollAreaWidgetContents)
+        self.treeWidget_components = AdaptiveTreeWidget(self)
         self.treeWidget_components.setUniformRowHeights(True)
         self.treeWidget_components.setObjectName("treeWidget_components")
-        self.treeWidget_components.headerItem().setText(0, "1")
+        self.treeWidget_components.setColumnCount(3)
+        self.treeWidget_components.headerItem().setTextAlignment(
+            0, Qt.AlignLeft | Qt.AlignVCenter
+        )
+        self.treeWidget_components.headerItem().setTextAlignment(
+            1, Qt.AlignLeft | Qt.AlignVCenter
+        )
+        self.treeWidget_components.headerItem().setText(0, "ID")
+        self.treeWidget_components.headerItem().setText(1, "Property")
+        self.treeWidget_components.headerItem().setText(2, "Value")
+        self.treeWidget_components.header().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
         self.verticalLayout.addWidget(self.treeWidget_components)
         # quant tables
-        self.lb_quantTbls = QLabel(self.scrollAreaWidgetContents)
+        self.lb_quantTbls = QLabel(self)
         self.lb_quantTbls.setObjectName("lb_quantTbls")
         self.verticalLayout.addWidget(self.lb_quantTbls)
-        self.treeWidget_quantTbls = AdaptiveTreeWidget(self.scrollAreaWidgetContents)
+        self.treeWidget_quantTbls = AdaptiveTreeWidget(self)
         self.treeWidget_quantTbls.setObjectName("treeWidget_quantTbls")
-        self.treeWidget_quantTbls.headerItem().setText(0, "1")
+        self.treeWidget_components.setColumnCount(3)
+        self.treeWidget_components.headerItem().setTextAlignment(
+            0, Qt.AlignLeft | Qt.AlignVCenter
+        )
+        self.treeWidget_components.headerItem().setTextAlignment(
+            1, Qt.AlignLeft | Qt.AlignVCenter
+        )
+        self.treeWidget_components.headerItem().setText(0, "ID")
+        self.treeWidget_components.headerItem().setText(1, "Property")
+        self.treeWidget_components.headerItem().setText(2, "Value")
         self.verticalLayout.addWidget(self.treeWidget_quantTbls)
         # huffman tables
-        self.lb_huffTbls = QLabel(self.scrollAreaWidgetContents)
+        self.lb_huffTbls = QLabel(self)
         self.lb_huffTbls.setObjectName("lb_huffTbls")
         self.verticalLayout.addWidget(self.lb_huffTbls)
-        self.treeWidget_huffTbls = AdaptiveTreeWidget(self.scrollAreaWidgetContents)
+        self.treeWidget_huffTbls = AdaptiveTreeWidget(self)
         self.treeWidget_huffTbls.setObjectName("treeWidget_huffTbls")
-        self.treeWidget_huffTbls.headerItem().setText(0, "1")
+        self.treeWidget_components.setColumnCount(3)
+        self.treeWidget_components.headerItem().setTextAlignment(
+            0, Qt.AlignLeft | Qt.AlignVCenter
+        )
+        self.treeWidget_components.headerItem().setTextAlignment(
+            1, Qt.AlignLeft | Qt.AlignVCenter
+        )
+        self.treeWidget_components.headerItem().setText(0, "ID")
+        self.treeWidget_components.headerItem().setText(1, "Property")
+        self.treeWidget_components.headerItem().setText(2, "Value")
         self.verticalLayout.addWidget(self.treeWidget_huffTbls)
 
-        # set the widgets into scrollArea
-        self.setWidget(self.scrollAreaWidgetContents)
+        self.setTitle('( None )')
         self.clear()
+
+    def setTitle(self, title):
+        self.lb_title.setText(title)
 
     def clear(self):
         self.image = None
@@ -111,6 +138,7 @@ class ImageDetailScrollArea(QScrollArea):
             self.strings['huffman'] % (0, 0)
         )
         self.treeWidget_huffTbls.clear()
+        self.imageCleared.emit()
 
     def setImage(self, image):
         self.image = image
@@ -120,7 +148,7 @@ class ImageDetailScrollArea(QScrollArea):
         self.lb_size.setText(
             self.strings['size'] % image.size
         )
-        self.lb_image.setImage(image.filepath, 300, 300)
+        self.lb_image.setImageMemSrc(image, 300, 300)
         # components
         for comp in image.comp_infos:
             topItem = QTreeWidgetItem(
@@ -148,7 +176,7 @@ class ImageDetailScrollArea(QScrollArea):
             self.strings['huffman'] % (
                 len(image.dc_huff_tbls),
                 len(image.ac_huff_tbls)
-                )
+            )
         )
         for i, hufftbl in enumerate(image.dc_huff_tbls):
             topItem = QTreeWidgetItem(
@@ -164,3 +192,4 @@ class ImageDetailScrollArea(QScrollArea):
             )
             for key in hufftbl:
                 QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+        self.imageLoaded.emit()

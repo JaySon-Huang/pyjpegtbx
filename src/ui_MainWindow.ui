@@ -141,11 +141,11 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
-           <widget class="ImageDetailScrollArea" name="scrollArea_3">
+           <widget class="QScrollArea" name="scrollArea_ori">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents_3">
+            <widget class="ImageDetailArea" name="saContents_ori">
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -282,11 +282,11 @@
            </layout>
           </item>
           <item>
-           <widget class="ImageDetailScrollArea" name="scrollArea_2">
+           <widget class="QScrollArea" name="scrollArea_dst">
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents_2">
+            <widget class="ImageDetailArea" name="saContents_dst">
              <property name="geometry">
               <rect>
                <x>0</x>
@@ -516,9 +516,9 @@
    <header>widgets/AdaptiveTreeWidget.h</header>
   </customwidget>
   <customwidget>
-   <class>ImageDetailScrollArea</class>
-   <extends>QScrollArea</extends>
-   <header>widgets/ImageDetailScrollArea.h</header>
+   <class>ImageDetailArea</class>
+   <extends>QWidget</extends>
+   <header>widgets/ImageDetailArea.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

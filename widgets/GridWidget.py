@@ -25,7 +25,7 @@ class GridWidget(QWidget):
 
     def setContent(self, filename, size):
         if filename:
-            self.ui.lb_preview.setImage(filename, size[0], size[1])
+            self.ui.lb_preview.setImageFileSrc(filename, size[0], size[1])
             # pic = QPixmap(filename)
             # pic = pic.scaled(
             #     size[0], size[1],

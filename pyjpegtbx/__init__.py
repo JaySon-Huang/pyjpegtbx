@@ -35,7 +35,7 @@ class JPEGImage(object):
 
     @classmethod
     def open(cls, filepath, mode=MODE_DCT):
-        f = open(filename, 'rb')
+        f = open(filepath, 'rb')
         contents = f.read()
         cinfo = jpeg_decompress_struct()
         jerr = jpeg_error_mgr()

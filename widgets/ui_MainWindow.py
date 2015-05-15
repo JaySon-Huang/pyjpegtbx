@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'src/ui_MainWindow.ui'
 #
-# Created: Fri May 15 13:31:23 2015
+# Created: Fri May 15 18:11:15 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -73,14 +73,14 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.addLayout(self.horizontalLayout_3)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.scrollArea_3 = ImageDetailScrollArea(self.tab_addPhoto)
-        self.scrollArea_3.setWidgetResizable(True)
-        self.scrollArea_3.setObjectName("scrollArea_3")
-        self.scrollAreaWidgetContents_3 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 357, 544))
-        self.scrollAreaWidgetContents_3.setObjectName("scrollAreaWidgetContents_3")
-        self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_3)
-        self.horizontalLayout_5.addWidget(self.scrollArea_3)
+        self.scrollArea_ori = QtWidgets.QScrollArea(self.tab_addPhoto)
+        self.scrollArea_ori.setWidgetResizable(True)
+        self.scrollArea_ori.setObjectName("scrollArea_ori")
+        self.saContents_ori = ImageDetailArea()
+        self.saContents_ori.setGeometry(QtCore.QRect(0, 0, 357, 544))
+        self.saContents_ori.setObjectName("saContents_ori")
+        self.scrollArea_ori.setWidget(self.saContents_ori)
+        self.horizontalLayout_5.addWidget(self.scrollArea_ori)
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setSpacing(0)
         self.verticalLayout_5.setContentsMargins(0, -1, -1, -1)
@@ -116,14 +116,14 @@ class Ui_MainWindow(object):
         spacerItem5 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_5.addItem(spacerItem5)
         self.horizontalLayout_5.addLayout(self.verticalLayout_5)
-        self.scrollArea_2 = ImageDetailScrollArea(self.tab_addPhoto)
-        self.scrollArea_2.setWidgetResizable(True)
-        self.scrollArea_2.setObjectName("scrollArea_2")
-        self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 357, 544))
-        self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
-        self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
-        self.horizontalLayout_5.addWidget(self.scrollArea_2)
+        self.scrollArea_dst = QtWidgets.QScrollArea(self.tab_addPhoto)
+        self.scrollArea_dst.setWidgetResizable(True)
+        self.scrollArea_dst.setObjectName("scrollArea_dst")
+        self.saContents_dst = ImageDetailArea()
+        self.saContents_dst.setGeometry(QtCore.QRect(0, 0, 357, 544))
+        self.saContents_dst.setObjectName("saContents_dst")
+        self.scrollArea_dst.setWidget(self.saContents_dst)
+        self.horizontalLayout_5.addWidget(self.scrollArea_dst)
         self.verticalLayout_2.addLayout(self.horizontalLayout_5)
         self.tabWidget.addTab(self.tab_addPhoto, "")
         self.tab = QtWidgets.QWidget()
@@ -242,5 +242,5 @@ class Ui_MainWindow(object):
         self.actionOpen.setStatusTip(_translate("MainWindow", "Open file..."))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+F"))
 
-from widgets.ImageDetailScrollArea import ImageDetailScrollArea
+from widgets.ImageDetailArea import ImageDetailArea
 from widgets.AdaptiveTreeWidget import AdaptiveTreeWidget

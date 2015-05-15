@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import hashlib
+from functools import partial
 
 from pyjpegtbx import JPEGImage
 # from JPEGImageCipher import JPEGImageCipher0 as JPEGImageCipher
@@ -129,6 +130,13 @@ class MainWindow(QMainWindow):
             self.btn_saveToLibrary_clicked
         )
 
+        ui.saContents_ori.imageLoaded.connect(
+            partial(self.__setBtnEnable, enable=True)
+        )
+        ui.saContents_ori.imageCleared.connect(
+            partial(self.__setBtnEnable, enable=False)
+        )
+
         ui.btn_encryptEmb.clicked.connect(
             self.btn_encryptEmbPhoto_clicked
         )
@@ -136,13 +144,18 @@ class MainWindow(QMainWindow):
             self.btn_decryptExtractPhoto_clicked
         )
 
-        ui.treeWidget_oriComponents.header().setSectionResizeMode(
-            QHeaderView.ResizeToContents
-        )
-
+        ui.saContents_ori.setTitle('Original')
+        ui.saContents_dst.setTitle('Destination')
         # 更新当前是否同步滚动
         self.setScrollMode(ui.ckbox_scrollMode.checkState())
         # self.__loadOriPhoto(ui, pics[0])  # for debug
+
+    def __setBtnEnable(self, enable):
+        # 成功载入后, 把 Encrypt/Decrypt 按钮设置为可用
+        self.ui.btn_encrypt.setEnabled(enable)
+        self.ui.btn_decrypt.setEnabled(enable)
+        self.ui.btn_encryptEmb.setEnabled(enable)
+        self.ui.btn_decryptExtract.setEnabled(enable)
 
     def __loadOriPhoto(self, ui, filepath):
         '''load original photo by filepath if filepath is not NULL;
@@ -152,165 +165,24 @@ class MainWindow(QMainWindow):
             self.loaded['oriFilepath'] = filepath
             img = JPEGImage.open(filepath)
             self.loaded['oriImage'] = img
-            ui.lb_oriFilename.setText(
-                self.strings['filename'] % (
-                    os.path.basename(filepath), 'original'
-                )
-            )
-            ui.lb_oriSize.setText(
-                self.strings['size'] % img.size
-            )
-            ui.lb_oriImage.setImage(filepath, 300, 300)
-            for comp in img.comp_infos:
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_oriComponents,
-                    [str(comp['component_id']), '', '']
-                )
-                for key in self.strings['showedComponentsInfo']:
-                    QTreeWidgetItem(topItem, ['', key, str(comp[key])])
-            ui.lb_oriComponents.setText(
-                self.strings['component'] % len(img.comp_infos)
-            )
-            ui.lb_oriQuantTbls.setText(
-                self.strings['quantization'] % len(img.quant_tbls)
-            )
-            for i, quant_tbl in enumerate(img.quant_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_oriQuantTbls,
-                    [str(i), '', '']
-                )
-                for key in quant_tbl:
-                    QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
-            ui.lb_oriHuffTbls.setText(
-                self.strings['huffman'] % (
-                    len(img.dc_huff_tbls),
-                    len(img.ac_huff_tbls)
-                    )
-            )
-            for i, hufftbl in enumerate(img.dc_huff_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_oriHuffTbls,
-                    [str(i), 'type', 'DC']
-                )
-                for key in hufftbl:
-                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            for i, hufftbl in enumerate(img.ac_huff_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_oriHuffTbls,
-                    [str(i), 'type', 'AC']
-                )
-                for key in hufftbl:
-                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            # 成功载入后, 把 Encrypt/Decrypt 按钮设置为可用
-            ui.btn_encrypt.setEnabled(True)
-            ui.btn_decrypt.setEnabled(True)
-            ui.btn_encryptEmb.setEnabled(True)
-            ui.btn_decryptExtract.setEnabled(True)
+            ui.saContents_ori.setImage(img)
         else:
             self.loaded['oriFilepath'] = None
             self.loaded['oriImage'] = None
-            ui.lb_oriFilename.setText(
-                self.strings['filename'] % ('', 'NO image loaded')
-            )
-            ui.lb_oriSize.setText(
-                self.strings['size'] % (0, 0)
-            )
-            ui.lb_oriImage.clear()
-            ui.lb_oriComponents.setText(
-                self.strings['component'] % 0
-            )
-            ui.treeWidget_oriComponents.clear()
-            ui.lb_oriQuantTbls.setText(
-                self.strings['quantization'] % 0
-            )
-            ui.treeWidget_oriQuantTbls.clear()
-            ui.lb_oriHuffTbls.setText(
-                self.strings['huffman'] % (0, 0)
-            )
-            ui.treeWidget_oriHuffTbls.clear()
-            ui.btn_encrypt.setEnabled(False)
-            ui.btn_decrypt.setEnabled(False)
-            ui.btn_encryptEmb.setEnabled(False)
-            ui.btn_decryptExtract.setEnabled(False)
+            ui.saContents_ori.clear()
 
     def __loadDstPhoto(self, ui, filepath):
         if filepath:
             self.loaded['dstFilepath'] = filepath
             img = JPEGImage.open(filepath)
             self.loaded['dstImage'] = img
-            ui.lb_dstFilename.setText(
-                self.strings['filename'] % (
-                    os.path.basename(filepath), 'original'
-                )
-            )
-            ui.lb_dstSize.setText(
-                self.strings['size'] % img.size
-            )
-            ui.lb_dstImage.setImage(filepath, 300, 300)
-            for comp in img.comp_infos:
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstComponents,
-                    [str(comp['component_id']), '', '']
-                )
-                for key in self.strings['showedComponentsInfo']:
-                    QTreeWidgetItem(topItem, ['', key, str(comp[key])])
-            ui.lb_dstComponents.setText(
-                self.strings['component'] % len(img.comp_infos)
-            )
-            ui.lb_dstQuantTbls.setText(
-                self.strings['quantization'] % len(img.quant_tbls)
-            )
-            for i, quant_tbl in enumerate(img.quant_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstQuantTbls,
-                    [str(i), '', '']
-                )
-                for key in quant_tbl:
-                    QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
-            ui.lb_dstHuffTbls.setText(
-                self.strings['huffman'] % (
-                    len(img.dc_huff_tbls),
-                    len(img.ac_huff_tbls)
-                    )
-            )
-            for i, hufftbl in enumerate(img.dc_huff_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstHuffTbls,
-                    [str(i), 'type', 'DC']
-                )
-                for key in hufftbl:
-                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            for i, hufftbl in enumerate(img.ac_huff_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstHuffTbls,
-                    [str(i), 'type', 'AC']
-                )
-                for key in hufftbl:
-                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+            ui.saContents_dst.setImage(img)
             # 成功载入后, 把Encrypt按钮设置为可用
             ui.btn_saveToLibrary.setEnabled(True)
         else:
             self.loaded['dstFilepath'] = None
             self.loaded['dstImage'] = None
-            ui.lb_dstFilename.setText(
-                self.strings['filename'] % ('', 'NO image loaded')
-            )
-            ui.lb_dstSize.setText(
-                self.strings['size'] % (0, 0)
-            )
-            ui.lb_dstImage.clear()
-            ui.lb_dstComponents.setText(
-                self.strings['component'] % 0
-            )
-            ui.treeWidget_dstComponents.clear()
-            ui.lb_dstQuantTbls.setText(
-                self.strings['quantization'] % 0
-            )
-            ui.treeWidget_dstQuantTbls.clear()
-            ui.lb_dstHuffTbls.setText(
-                self.strings['huffman'] % (0, 0)
-            )
-            ui.treeWidget_dstHuffTbls.clear()
+            ui.saContents_dst.clear()
             ui.btn_saveToLibrary.setEnabled(False)
 
     def btn_enterPassword_clicked(self):
@@ -350,92 +222,26 @@ class MainWindow(QMainWindow):
     def __loadDstPhotoFromImage(self, ui, img):
         if img:
             self.loaded['dstImage'] = img
-            ui.lb_dstFilename.setText(
-                self.strings['filename'] % (
-                    '(in memory)', 'original'
-                )
-            )
-            ui.lb_dstSize.setText(
-                self.strings['size'] % img.size
-            )
-            ui.lb_dstImage.setImageMemSrc(img, 300, 300)
-            for comp in img.comp_infos:
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstComponents,
-                    [str(comp['component_id']), '', '']
-                )
-                for key in self.strings['showedComponentsInfo']:
-                    QTreeWidgetItem(topItem, ['', key, str(comp[key])])
-            ui.lb_dstComponents.setText(
-                self.strings['component'] % len(img.comp_infos)
-            )
-            ui.lb_dstQuantTbls.setText(
-                self.strings['quantization'] % len(img.quant_tbls)
-            )
-            for i, quant_tbl in enumerate(img.quant_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstQuantTbls,
-                    [str(i), '', '']
-                )
-                for key in quant_tbl:
-                    QTreeWidgetItem(topItem, ['', key, str(quant_tbl[key])])
-            ui.lb_dstHuffTbls.setText(
-                self.strings['huffman'] % (
-                    len(img.dc_huff_tbls),
-                    len(img.ac_huff_tbls)
-                    )
-            )
-            for i, hufftbl in enumerate(img.dc_huff_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstHuffTbls,
-                    [str(i), 'type', 'DC']
-                )
-                for key in hufftbl:
-                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
-            for i, hufftbl in enumerate(img.ac_huff_tbls):
-                topItem = QTreeWidgetItem(
-                    ui.treeWidget_dstHuffTbls,
-                    [str(i), 'type', 'AC']
-                )
-                for key in hufftbl:
-                    QTreeWidgetItem(topItem, ['', key, str(hufftbl[key])])
+            ui.saContents_dst.setImage(img)
             # 成功载入后, 把Encrypt按钮设置为可用
             ui.btn_saveToLibrary.setEnabled(True)
         else:
             self.loaded['dstFilepath'] = None
             self.loaded['dstImage'] = None
-            ui.lb_dstFilename.setText(
-                self.strings['filename'] % ('', 'NO image loaded')
-            )
-            ui.lb_dstSize.setText(
-                self.strings['size'] % (0, 0)
-            )
-            ui.lb_dstImage.clear()
-            ui.lb_dstComponents.setText(
-                self.strings['component'] % 0
-            )
-            ui.treeWidget_dstComponents.clear()
-            ui.lb_dstQuantTbls.setText(
-                self.strings['quantization'] % 0
-            )
-            ui.treeWidget_dstQuantTbls.clear()
-            ui.lb_dstHuffTbls.setText(
-                self.strings['huffman'] % (0, 0)
-            )
-            ui.treeWidget_dstHuffTbls.clear()
+            ui.saContents_dst.clear()
             ui.btn_saveToLibrary.setEnabled(False)
 
     def btn_encryptPhoto_clicked(self):
         if not self.seed:
             self.btn_enterPassword_clicked()
+        self.__loadDstPhotoFromImage(self.ui, None)
         cipher = JPEGImageCipher(self.seed)
-        self.loaded['dstImage'] = cipher.encrypt(self.loaded['oriImage'])
+        img = cipher.encrypt(self.loaded['oriImage'])
         ## 先保存临时文件, 再载入临时文件显示图片 ##
-        # filename = os.path.basename(self.loaded['oriFilepath'])
-        # self.__saveToTempFile(filename)
-        # self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
+        # tmpFilepath = self.__saveToTempFile(img, img.filename)
+        # self.__loadDstPhoto(self.ui, tmpFilepath)
         ## 直接通过JPEGImage对象的接口中载入图像数据 ##
-        self.__loadDstPhotoFromImage(self.ui, self.loaded['dstImage'])
+        self.__loadDstPhotoFromImage(self.ui, img)
 
     def btn_encryptEmbPhoto_clicked(self):
         pass
@@ -444,18 +250,17 @@ class MainWindow(QMainWindow):
         if not self.seed:
             self.btn_enterPassword_clicked()
         cipher = JPEGImageCipher(self.seed)
-        self.loaded['dstImage'] = cipher.decrypt(self.loaded['oriImage'])
+        img = cipher.decrypt(self.loaded['oriImage'])
         ## 先保存临时文件, 再载入临时文件显示图片 ##
-        # filename = os.path.basename(self.loaded['oriFilepath'])
-        # self.__saveToTempFile(filename)
-        # self.__loadDstPhoto(self.ui, self.loaded['dstFilepath'])
+        # tmpFilepath = self.__saveToTempFile(img, img.filename)
+        # self.__loadDstPhoto(self.ui, tmpFilepath)
         ## 直接通过JPEGImage对象的接口中载入图像数据 ##
-        self.__loadDstPhotoFromImage(self.ui, self.loaded['dstImage'])
+        self.__loadDstPhotoFromImage(self.ui, img)
 
     def btn_decryptExtractPhoto_clicked(self):
         pass
 
-    def __saveToTempFile(self, filename):
+    def __saveToTempFile(self, img, filename):
         '''保存self.loaded['dstImage']对象中存储的图像到`paths.tmp`文件夹下,
         并把路径名存储到`self.loaded['dstFilepath']`中'''
         self.loaded['dstFilepath'] = os.path.join(
@@ -465,7 +270,8 @@ class MainWindow(QMainWindow):
             'save encrypted/decrypted image to temp file:',
             self.loaded['dstFilepath']
         )
-        self.loaded['dstImage'].save(self.loaded['dstFilepath'])
+        img.save(self.loaded['dstFilepath'])
+        return self.loaded['dstFilepath']
 
     def btn_saveToLibrary_clicked(self):
         ## 使用临时文件存储的方式, 直接移动文件 ##
@@ -485,18 +291,18 @@ class MainWindow(QMainWindow):
 
     def setScrollMode(self, state):
         if state == Qt.Unchecked:
-            self.ui.scrollArea_rightPhoto.verticalScrollBar().valueChanged['int'].disconnect(
-                self.ui.scrollArea_leftPhoto.verticalScrollBar().setValue
+            self.ui.scrollArea_ori.verticalScrollBar().valueChanged['int'].disconnect(
+                self.ui.scrollArea_dst.verticalScrollBar().setValue
             )
-            self.ui.scrollArea_leftPhoto.verticalScrollBar().valueChanged['int'].disconnect(
-                self.ui.scrollArea_rightPhoto.verticalScrollBar().setValue
+            self.ui.scrollArea_dst.verticalScrollBar().valueChanged['int'].disconnect(
+                self.ui.scrollArea_ori.verticalScrollBar().setValue
             )
         elif state == Qt.Checked:
-            self.ui.scrollArea_rightPhoto.verticalScrollBar().valueChanged['int'].connect(
-                self.ui.scrollArea_leftPhoto.verticalScrollBar().setValue
+            self.ui.scrollArea_ori.verticalScrollBar().valueChanged['int'].connect(
+                self.ui.scrollArea_dst.verticalScrollBar().setValue
             )
-            self.ui.scrollArea_leftPhoto.verticalScrollBar().valueChanged['int'].connect(
-                self.ui.scrollArea_rightPhoto.verticalScrollBar().setValue
+            self.ui.scrollArea_dst.verticalScrollBar().valueChanged['int'].connect(
+                self.ui.scrollArea_ori.verticalScrollBar().setValue
             )
 
     def setPaths(self):
