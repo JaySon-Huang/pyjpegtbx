@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'src/ui_MainWindow.ui'
 #
-# Created: Fri May 15 18:11:15 2015
+# Created: Fri May 15 21:59:06 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -77,7 +77,7 @@ class Ui_MainWindow(object):
         self.scrollArea_ori.setWidgetResizable(True)
         self.scrollArea_ori.setObjectName("scrollArea_ori")
         self.saContents_ori = ImageDetailArea()
-        self.saContents_ori.setGeometry(QtCore.QRect(0, 0, 357, 544))
+        self.saContents_ori.setGeometry(QtCore.QRect(0, 0, 395, 544))
         self.saContents_ori.setObjectName("saContents_ori")
         self.scrollArea_ori.setWidget(self.saContents_ori)
         self.horizontalLayout_5.addWidget(self.scrollArea_ori)
@@ -120,7 +120,7 @@ class Ui_MainWindow(object):
         self.scrollArea_dst.setWidgetResizable(True)
         self.scrollArea_dst.setObjectName("scrollArea_dst")
         self.saContents_dst = ImageDetailArea()
-        self.saContents_dst.setGeometry(QtCore.QRect(0, 0, 357, 544))
+        self.saContents_dst.setGeometry(QtCore.QRect(0, 0, 394, 544))
         self.saContents_dst.setObjectName("saContents_dst")
         self.scrollArea_dst.setWidget(self.saContents_dst)
         self.horizontalLayout_5.addWidget(self.scrollArea_dst)
@@ -205,8 +205,10 @@ class Ui_MainWindow(object):
         self.ckbox_scrollMode.setText(_translate("MainWindow", "synchronous scroll"))
         self.btn_encrypt.setText(_translate("MainWindow", "Encrypt =>"))
         self.btn_decrypt.setText(_translate("MainWindow", "Decrypt =>"))
-        self.btn_encryptEmb.setText(_translate("MainWindow", "Encrypt && Emb message =>"))
-        self.btn_decryptExtract.setText(_translate("MainWindow", "Decrypt && Extract message=>"))
+        self.btn_encryptEmb.setText(_translate("MainWindow", "Encrypt && Emb \n"
+"message =>"))
+        self.btn_decryptExtract.setText(_translate("MainWindow", "Decrypt && Extract \n"
+"message =>"))
         self.btn_saveToLibrary.setText(_translate("MainWindow", "Save to Library"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_addPhoto), _translate("MainWindow", "Add Photo"))
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "1"))

@@ -49,6 +49,7 @@ class ImageLabel(QLabel):
 
     def clear(self):
         self.pixmap = None
+        super().clear()
 
     def mousePressEvent(self, ev):
         if self.pixmap:

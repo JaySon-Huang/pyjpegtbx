@@ -150,7 +150,7 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>357</width>
+               <width>395</width>
                <height>544</height>
               </rect>
              </property>
@@ -220,7 +220,8 @@
                <bool>false</bool>
               </property>
               <property name="text">
-               <string>Encrypt &amp;&amp; Emb message =&gt;</string>
+               <string>Encrypt &amp;&amp; Emb 
+message =&gt;</string>
               </property>
              </widget>
             </item>
@@ -230,7 +231,8 @@
                <bool>false</bool>
               </property>
               <property name="text">
-               <string>Decrypt &amp;&amp; Extract message=&gt;</string>
+               <string>Decrypt &amp;&amp; Extract 
+message =&gt;</string>
               </property>
              </widget>
             </item>
@@ -291,7 +293,7 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>357</width>
+               <width>394</width>
                <height>544</height>
               </rect>
              </property>

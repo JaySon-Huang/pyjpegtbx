@@ -141,6 +141,7 @@ class ImageDetailArea(QWidget):
         self.imageCleared.emit()
 
     def setImage(self, image):
+        self.clear()
         self.image = image
         self.lb_filename.setText(
             self.strings['filename'] % (image.filename, 'original')

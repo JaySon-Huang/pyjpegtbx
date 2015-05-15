@@ -38,18 +38,6 @@ class MainWindow(QMainWindow):
     }
     # static strings
     strings = {
-        'filename': 'filename: %s (%s)',
-        'size': 'size: %d x %d',
-        'component': 'Components (%d in total)',
-        'quantization': 'Quantization tables (%d in total)',
-        'huffman': 'Huffman tables (%d for DC, %d for AC)',
-        'showedComponentsInfo': [
-            'dc_tbl_no',
-            'ac_tbl_no',
-            'quant_tbl_no',
-            'h_samp_factor',
-            'v_samp_factor',
-            ],
     }
     # static paths
     paths = {
@@ -80,7 +68,7 @@ class MainWindow(QMainWindow):
         for filename in os.listdir(self.paths['library']):
             if filename.endswith('jpeg') or filename.endswith('.jpg'):
                 libfiles.append(os.path.join(self.paths['library'], filename))
-        print('files', libfiles)
+        print('files in library:', libfiles)
         self.ui.libraryWidgets = []
 
         sp = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -117,10 +105,10 @@ class MainWindow(QMainWindow):
             self.setScrollMode
         )
         ui.btn_encrypt.clicked.connect(
-            self.btn_encryptPhoto_clicked
+            partial(self.btn_encryptPhoto_clicked, toEmbMessage=False)
         )
         ui.btn_decrypt.clicked.connect(
-            self.btn_decryptPhoto_clicked
+            partial(self.btn_decryptPhoto_clicked, toExtractMessage=False)
         )
         ui.btn_loadImage.clicked.connect(
             self.btn_loadImage_clicked
@@ -138,10 +126,10 @@ class MainWindow(QMainWindow):
         )
 
         ui.btn_encryptEmb.clicked.connect(
-            self.btn_encryptEmbPhoto_clicked
+            partial(self.btn_encryptPhoto_clicked, toEmbMessage=True)
         )
         ui.btn_decryptExtract.clicked.connect(
-            self.btn_decryptExtractPhoto_clicked
+            partial(self.btn_decryptPhoto_clicked, toExtractMessage=True)
         )
 
         ui.saContents_ori.setTitle('Original')
@@ -185,13 +173,26 @@ class MainWindow(QMainWindow):
             ui.saContents_dst.clear()
             ui.btn_saveToLibrary.setEnabled(False)
 
+    def __loadDstPhotoFromImage(self, ui, img):
+        if img:
+            self.loaded['dstFilepath'] = None
+            self.loaded['dstImage'] = img
+            ui.saContents_dst.setImage(img)
+            # 成功载入后, 把Encrypt按钮设置为可用
+            ui.btn_saveToLibrary.setEnabled(True)
+        else:
+            self.loaded['dstFilepath'] = None
+            self.loaded['dstImage'] = None
+            ui.saContents_dst.clear()
+            ui.btn_saveToLibrary.setEnabled(False)
+
     def btn_enterPassword_clicked(self):
         password, isOK = QInputDialog.getText(
             self, 'Enter your password', 'Password:',
             QLineEdit.Password
         )
         if isOK:
-            print(password)
+            print('Password is:', password)
             h = hashlib.md5(password.encode('utf-8')).digest()
             front, back = 0, 0
             for i, num in enumerate(h):
@@ -206,6 +207,7 @@ class MainWindow(QMainWindow):
             front *= 1.0
             back *= 1.0
             self.seed = front/back if front < back else back/front
+        return isOK
 
     def btn_loadImage_clicked(self):
         filepath, _ = QFileDialog.getOpenFileName(
@@ -219,46 +221,40 @@ class MainWindow(QMainWindow):
             # clear dst side
             self.__loadDstPhoto(self.ui, '')
 
-    def __loadDstPhotoFromImage(self, ui, img):
-        if img:
-            self.loaded['dstImage'] = img
-            ui.saContents_dst.setImage(img)
-            # 成功载入后, 把Encrypt按钮设置为可用
-            ui.btn_saveToLibrary.setEnabled(True)
-        else:
-            self.loaded['dstFilepath'] = None
-            self.loaded['dstImage'] = None
-            ui.saContents_dst.clear()
-            ui.btn_saveToLibrary.setEnabled(False)
-
-    def btn_encryptPhoto_clicked(self):
+    def btn_encryptPhoto_clicked(self, toEmbMessage):
         if not self.seed:
-            self.btn_enterPassword_clicked()
+            if not self.btn_enterPassword_clicked():
+                # 取消输入密码
+                return
         self.__loadDstPhotoFromImage(self.ui, None)
         cipher = JPEGImageCipher(self.seed)
-        img = cipher.encrypt(self.loaded['oriImage'])
+        if toEmbMessage:
+            bdata = b'Attack at dawn'
+            img = cipher.encrtptAndEmbData(self.loaded['oriImage'], bdata)
+        else:
+            img = cipher.encrypt(self.loaded['oriImage'])
         ## 先保存临时文件, 再载入临时文件显示图片 ##
         # tmpFilepath = self.__saveToTempFile(img, img.filename)
         # self.__loadDstPhoto(self.ui, tmpFilepath)
         ## 直接通过JPEGImage对象的接口中载入图像数据 ##
         self.__loadDstPhotoFromImage(self.ui, img)
 
-    def btn_encryptEmbPhoto_clicked(self):
-        pass
-
-    def btn_decryptPhoto_clicked(self):
+    def btn_decryptPhoto_clicked(self, toExtractMessage):
         if not self.seed:
-            self.btn_enterPassword_clicked()
+            if not self.btn_enterPassword_clicked():
+                # 取消输入密码
+                return
         cipher = JPEGImageCipher(self.seed)
-        img = cipher.decrypt(self.loaded['oriImage'])
+        if toExtractMessage:
+            img, bdata = cipher.decryptAndExtractData(self.loaded['oriImage'])
+            print('The message extract is:', bdata)
+        else:
+            img = cipher.decrypt(self.loaded['oriImage'])
         ## 先保存临时文件, 再载入临时文件显示图片 ##
         # tmpFilepath = self.__saveToTempFile(img, img.filename)
         # self.__loadDstPhoto(self.ui, tmpFilepath)
         ## 直接通过JPEGImage对象的接口中载入图像数据 ##
         self.__loadDstPhotoFromImage(self.ui, img)
-
-    def btn_decryptExtractPhoto_clicked(self):
-        pass
 
     def __saveToTempFile(self, img, filename):
         '''保存self.loaded['dstImage']对象中存储的图像到`paths.tmp`文件夹下,
