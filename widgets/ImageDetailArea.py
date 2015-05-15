@@ -82,16 +82,16 @@ class ImageDetailArea(QWidget):
         self.verticalLayout.addWidget(self.lb_quantTbls)
         self.treeWidget_quantTbls = AdaptiveTreeWidget(self)
         self.treeWidget_quantTbls.setObjectName("treeWidget_quantTbls")
-        self.treeWidget_components.setColumnCount(3)
-        self.treeWidget_components.headerItem().setTextAlignment(
+        self.treeWidget_quantTbls.setColumnCount(3)
+        self.treeWidget_quantTbls.headerItem().setTextAlignment(
             0, Qt.AlignLeft | Qt.AlignVCenter
         )
-        self.treeWidget_components.headerItem().setTextAlignment(
+        self.treeWidget_quantTbls.headerItem().setTextAlignment(
             1, Qt.AlignLeft | Qt.AlignVCenter
         )
-        self.treeWidget_components.headerItem().setText(0, "ID")
-        self.treeWidget_components.headerItem().setText(1, "Property")
-        self.treeWidget_components.headerItem().setText(2, "Value")
+        self.treeWidget_quantTbls.headerItem().setText(0, "ID")
+        self.treeWidget_quantTbls.headerItem().setText(1, "Property")
+        self.treeWidget_quantTbls.headerItem().setText(2, "Value")
         self.verticalLayout.addWidget(self.treeWidget_quantTbls)
         # huffman tables
         self.lb_huffTbls = QLabel(self)
@@ -99,16 +99,16 @@ class ImageDetailArea(QWidget):
         self.verticalLayout.addWidget(self.lb_huffTbls)
         self.treeWidget_huffTbls = AdaptiveTreeWidget(self)
         self.treeWidget_huffTbls.setObjectName("treeWidget_huffTbls")
-        self.treeWidget_components.setColumnCount(3)
-        self.treeWidget_components.headerItem().setTextAlignment(
+        self.treeWidget_huffTbls.setColumnCount(3)
+        self.treeWidget_huffTbls.headerItem().setTextAlignment(
             0, Qt.AlignLeft | Qt.AlignVCenter
         )
-        self.treeWidget_components.headerItem().setTextAlignment(
+        self.treeWidget_huffTbls.headerItem().setTextAlignment(
             1, Qt.AlignLeft | Qt.AlignVCenter
         )
-        self.treeWidget_components.headerItem().setText(0, "ID")
-        self.treeWidget_components.headerItem().setText(1, "Property")
-        self.treeWidget_components.headerItem().setText(2, "Value")
+        self.treeWidget_huffTbls.headerItem().setText(0, "ID")
+        self.treeWidget_huffTbls.headerItem().setText(1, "Property")
+        self.treeWidget_huffTbls.headerItem().setText(2, "Value")
         self.verticalLayout.addWidget(self.treeWidget_huffTbls)
 
         self.setTitle('( None )')
