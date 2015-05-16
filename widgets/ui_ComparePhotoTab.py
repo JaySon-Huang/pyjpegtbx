@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'src/ui_ComparePhotoTab.ui'
 #
-# Created: Sat May 16 02:24:29 2015
+# Created: Sat May 16 17:19:50 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -28,9 +28,6 @@ class Ui_Tab(object):
         self.btn_compareImage = QtWidgets.QPushButton(Tab)
         self.btn_compareImage.setObjectName("btn_compareImage")
         self.hLayout.addWidget(self.btn_compareImage)
-        self.btn_saveCmpResult = QtWidgets.QPushButton(Tab)
-        self.btn_saveCmpResult.setObjectName("btn_saveCmpResult")
-        self.hLayout.addWidget(self.btn_saveCmpResult)
         self.vLayout.addLayout(self.hLayout)
         self.hLayout_2 = QtWidgets.QHBoxLayout()
         self.hLayout_2.setObjectName("hLayout_2")
@@ -64,11 +61,10 @@ class Ui_Tab(object):
         Tab.setWindowTitle(_translate("Tab", "Form"))
         self.btn_loadOriImage.setText(_translate("Tab", "Load Original \n"
 "Image"))
-        self.btn_loadCmpImage.setText(_translate("Tab", "Load Compared \n"
+        self.btn_loadCmpImage.setText(_translate("Tab", "Load Compare \n"
 "Image"))
         self.btn_compareImage.setText(_translate("Tab", "Compare"))
-        self.btn_saveCmpResult.setText(_translate("Tab", "Save Compare"))
         self.lb_oriImage.setText(_translate("Tab", "Original Image Label"))
-        self.lb_cmpImage.setText(_translate("Tab", "Compared Image Label"))
+        self.lb_cmpImage.setText(_translate("Tab", "Compare Image Label"))
 
 from widgets.ImageLabel import ImageLabel

@@ -25,6 +25,9 @@ from PyQt5.QtGui import (
 
 from widgets.GridWidget import GridWidget
 from widgets.ui_MainWindow import Ui_MainWindow
+from utils.fileUtils import (
+    paths, setupPaths, getTmpFilepath, getLibFilepath, moveToLibrary
+)
 
 pics = ['lfs.jpg', 'tmp0.jpg', 'tmp1.jpg']
 
@@ -42,12 +45,6 @@ class MainWindow(QMainWindow):
             'extract': 'Message extract:\n%s',
         },
     }
-    # static paths
-    paths = {
-        'root': '',
-        'library': '',
-        'tmp': '',
-    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -55,8 +52,6 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        # 初始化paths, 并确保一些文件夹的存在性
-        self.setPaths()
         self.loaded = {}
         self.seed = None
 
@@ -68,9 +63,9 @@ class MainWindow(QMainWindow):
             self.btn_enterPassword_clicked
         )
         libfiles = []
-        for filename in os.listdir(self.paths['library']):
+        for filename in os.listdir(paths['library']):
             if filename.endswith('jpeg') or filename.endswith('.jpg'):
-                libfiles.append(os.path.join(self.paths['library'], filename))
+                libfiles.append(os.path.join(paths['library'], filename))
         print('files in library:', libfiles)
         self.ui.libraryWidgets = []
 
@@ -270,11 +265,9 @@ class MainWindow(QMainWindow):
         self.__loadDstPhotoFromImage(self.ui, img)
 
     def __saveToTempFile(self, img, filename):
-        '''保存self.loaded['dstImage']对象中存储的图像到`paths.tmp`文件夹下,
+        '''保存self.loaded['dstImage']对象中存储的图像到`tmp`文件夹下,
         并把路径名存储到`self.loaded['dstFilepath']`中'''
-        self.loaded['dstFilepath'] = os.path.join(
-            self.paths['tmp'], filename
-        )
+        self.loaded['dstFilepath'] = getTmpFilepath(filename)
         print(
             'save encrypted/decrypted image to temp file:',
             self.loaded['dstFilepath']
@@ -284,17 +277,12 @@ class MainWindow(QMainWindow):
 
     def btn_saveToLibrary_clicked(self):
         ## 使用临时文件存储的方式, 直接移动文件 ##
-        # libpath = os.path.join(
-        #     self.paths['library'], os.path.basename(self.loaded['dstFilepath'])
-        # )
-        # os.rename(self.loaded['dstFilepath'], libpath)
+        # libpath = moveToLibrary(self.loaded['dstFilepath'])
         # print('file: %s moved to %s' % (self.loaded['dstFilepath'], libpath))
         # self.loaded['dstFilepath'] = libpath
         # self.loaded['dstImage'].filename = libpath
         ## 把self.loaded['dstImage']保存到`paths.library`中 ##
-        filepath = os.path.join(
-            self.paths['library'], os.path.basename(self.loaded['oriFilepath'])
-        )
+        filepath = getLibFilepath(self.loaded['oriFilepath'])
         self.loaded['dstFilepath'] = filepath
         self.loaded['dstImage'].save(filepath)
 
@@ -314,25 +302,10 @@ class MainWindow(QMainWindow):
                 self.ui.scrollArea_ori.verticalScrollBar().setValue
             )
 
-    def setPaths(self):
-        path = sys.path[0]
-        # 判断文件是编译后的文件还是脚本文件
-        if os.path.isdir(path):  # 脚本文件目录
-            exec_path = path
-        else:  # 编译后的文件, 返回它的上一级目录
-            exec_path = os.path.dirname(path)
-        self.paths['root'] = exec_path
-        self.paths['library'] = os.path.join(exec_path, 'library')
-        self.paths['tmp'] = os.path.join(exec_path, 'tmp')
-        self.ensurePathsExist()
-
-    def ensurePathsExist(self):
-        for _, path in self.paths.items():
-            if not os.path.exists(path):
-                os.makedirs(path)
-
 
 def main():
+    setupPaths()
+
     app = QApplication(sys.argv)
     main = MainWindow()
     main.show()

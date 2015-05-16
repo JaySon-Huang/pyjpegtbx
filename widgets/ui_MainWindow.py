@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'src/ui_MainWindow.ui'
 #
-# Created: Sat May 16 02:19:44 2015
+# Created: Sat May 16 17:19:09 2015
 #      by: PyQt5 UI code generator 5.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -185,5 +185,5 @@ class Ui_MainWindow(object):
         self.actionOpen.setStatusTip(_translate("MainWindow", "Open file..."))
         self.actionOpen.setShortcut(_translate("MainWindow", "Ctrl+F"))
 
-from widgets.ImageDetailArea import ImageDetailArea
 from widgets.ComparePhotoTab import ComparePhotoTab
+from widgets.ImageDetailArea import ImageDetailArea

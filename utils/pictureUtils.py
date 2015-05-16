@@ -48,14 +48,15 @@ def make_difference(image, restruct_image, highlight_img):
     return difference_img
 
 
-def compare_images(filename, compare_filename, diff_filename=None):
+def compare_images(filename, compare_filename, diff_filename=None, showDiff=False):
     image = Image.open(filename)
     restruct_image = Image.open(compare_filename)
 
     highlight_img = make_highlight(image)
     difference_img = make_difference(image, restruct_image, highlight_img)
     if not diff_filename:
-        difference_img.show()  # 直接显示图片
+        if showDiff:
+            difference_img.show()  # 直接显示图片
         return difference_img
     else:
         difference_img.save(diff_filename, quality=90)

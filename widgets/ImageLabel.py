@@ -25,14 +25,15 @@ class DoubleClickableLabel(QLabel):
 class ImageLabel(QLabel):
     def __init__(self, text=None, parent=None):
         super().__init__(parent)
-        self.filepath = None
+        self.pixmap = None
 
-    def setImageFileSrc(self, filepath, width, height):
+    def setImageFileSrc(self, filepath, width=None, height=None):
         pic = QPixmap(filepath)
         self.pixmap = pic
-        pic = pic.scaled(
-            width, height, Qt.KeepAspectRatio
-        )
+        if width is not None and height is not None:
+            pic = pic.scaled(
+                width, height, Qt.KeepAspectRatio
+            )
         self.setPixmap(pic)
         # 修改鼠标样式
         self.setCursor(Qt.PointingHandCursor)
@@ -41,10 +42,12 @@ class ImageLabel(QLabel):
         pic = QPixmap()
         pic.loadFromData(img.save2Bytes())
         self.pixmap = pic
-        pic = pic.scaled(
-            width, height, Qt.KeepAspectRatio
-        )
+        if width is not None and height is not None:
+            pic = pic.scaled(
+                width, height, Qt.KeepAspectRatio
+            )
         self.setPixmap(pic)
+        # 修改鼠标样式
         self.setCursor(Qt.PointingHandCursor)
 
     def clear(self):
