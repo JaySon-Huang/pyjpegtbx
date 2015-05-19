@@ -356,11 +356,13 @@ class JPEGImage(object):
                 self._exif['exif_header'] = app[:6]
                 self._exif['tiff'] = TIFF.from_bytes(app[6:])
                 break
+        # example
+        exif = {}
         for ifd_name, ifd in self._exif['tiff'].iter_IFDs():
-            print(ifd_name)
+            exif[ifd_name] = []
             for entry in ifd.iter_entries():
-                print(entry)
-        return self._exif
+                exif[ifd_name].append(entry)
+        return exif
 
     def get_app(self):
         if self._app is not None:
@@ -389,4 +391,4 @@ class JPEGImage(object):
 
 def test():
     j = JPEGImage.open('test/pics/PANO_20140613_191243.jpg')
-    j.get_exif()
+    print(j.get_exif())

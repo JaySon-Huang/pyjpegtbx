@@ -33,3 +33,7 @@ for key, val in img.data.items():
         for i in range(32, 64):
             coef[i] = 0
 img.save('tmp1.jpg')
+
+# 获取exif信息
+exif_infos = img.get_exif()
+print(exif_infos)
