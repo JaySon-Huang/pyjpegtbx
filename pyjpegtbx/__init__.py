@@ -14,9 +14,11 @@ from .structs import (
     JSAMPLE, JSAMPARRAY, JBLOCK, J_COLOR_SPACE,
     jpeg_error_mgr,
     j_common_ptr, jpeg_decompress_struct, jpeg_compress_struct,
-    jpeg_component_info, jvirt_barray_ptr
+    jpeg_component_info, jvirt_barray_ptr,
+    TIFF,
 )
 from .functions import jfuncs, cfopen, cfclose, jround_up
+from .utils import BytesReader
 
 __all__ = [
     'JPEGImage',
@@ -26,6 +28,11 @@ __all__ = [
 def py_error_exit(cinfo):
     print('in calling error_exit')
 error_exit = ERROR_EXIT_FUNC(py_error_exit)
+
+
+def _geti16(fp):
+    data = fp.read(2)
+    return (data[0] << 8) + data[1]
 
 
 class JPEGImage(object):
@@ -153,6 +160,9 @@ class JPEGImage(object):
 
         jfuncs['jFinDecompress'](ctypes.byref(cinfo))
         jfuncs['jDestDecompress'](ctypes.byref(cinfo))
+        # 初始化exif信息
+        obj._exif = None
+        obj._app = None
         return obj
 
     def copy(self):
@@ -331,3 +341,52 @@ class JPEGImage(object):
 
     def color_space_description(self):
         return DESCRIPTIONS_OF_J_COLOR_SAPCE[self._color_space]
+
+    def get_exif(self):
+        if self._exif is not None:
+            return self._exif
+
+        if self._app is None:
+            self.get_app()
+
+        # import ipdb;ipdb.set_trace();
+        self._exif = {}
+        for _, app in self._app:
+            if app.startswith(b'Exif'):
+                self._exif['exif_header'] = app[:6]
+                self._exif['tiff'] = TIFF.from_bytes(app[6:])
+                break
+        for ifd_name, ifd in self._exif['tiff'].iter_IFDs():
+            print(ifd_name)
+            for entry in ifd.iter_entries():
+                print(entry)
+        return self._exif
+
+    def get_app(self):
+        if self._app is not None:
+            return self._app
+
+        self._app = []
+        # 从文件中读取
+        fp = open(self.filepath, 'rb')
+        while True:
+            ch = fp.read(1)
+            if ch == b'\xff':
+                marker = fp.read(1)[0]
+                if 0xE1 <= marker <= 0xFF:
+                    length = _geti16(fp)
+                    app_no = marker - 0xE0
+                    data = fp.read(length-2)
+                    self._app.append(
+                        ('APP%d' % app_no, data)
+                    )
+                elif marker == 0xC0:
+                    # SOF, no more info
+                    break
+        fp.close()
+        return self._app
+
+
+def test():
+    j = JPEGImage.open('test/pics/PANO_20140613_191243.jpg')
+    j.get_exif()

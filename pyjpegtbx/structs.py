@@ -2,10 +2,12 @@
 #encoding=utf-8
 
 import ctypes
+import fractions
 from .constants import (
     DCTSIZE2, MAX_COMPS_IN_SCAN, C_MAX_BLOCKS_IN_MCU, D_MAX_BLOCKS_IN_MCU,
     NUM_QUANT_TBLS, NUM_HUFF_TBLS, NUM_ARITH_TBLS
 )
+from .utils import BytesReader
 
 boolean = ctypes.c_int
 JSAMPLE = ctypes.c_char
@@ -442,3 +444,356 @@ jpeg_error_mgr._fields_ = (
     ('last_addon_message', ctypes.c_int),
     ('setjmp_buffer', jmp_buf),
 )
+
+
+class IFDFormat(object):
+    # (value, num of bytes)
+    UByte = (1, 1)
+    ASCII = (2, 1)
+    UShort = (3, 2)
+    ULong = (4, 4)
+    URational = (5, 8)
+    Byte = (6, 1)
+    Undefined = (7, 1)
+    Short = (8, 2)
+    Long = (9, 4)
+    Rational = (10, 8)
+    Float = (11, 4)
+    Double = (12, 8)
+
+    FORMATS = (
+        UByte, ASCII, UShort, ULong, URational,
+        Byte, Undefined, Short, Long, Rational, Float, Double
+    )
+
+    def __init__(self, value):
+        for val, nbytes in IFDFormat.FORMATS:
+            if value == val:
+                self.value = val
+                self.nbytes = nbytes
+                break
+
+    def __str__(self):
+        return {
+            1:  'UByte',
+            2:  'ASCII',
+            3:  'UShort',
+            4:  'ULong',
+            5:  'URational',
+            6:  'Byte',
+            7:  'Undefined',
+            8:  'Short',
+            9:  'Long',
+            10: 'Rational',
+            11: 'Float',
+            12: 'Double',
+        }[self.value]
+
+    def __repr__(self):
+        return self.__str__()
+
+    def get_comp(self, reader, byte_data, offset, num_comp):
+        if self.value in (IFDFormat.UByte[0], IFDFormat.Byte[0]):
+            if num_comp == 1:
+                comp = byte_data[offset]
+                return comp
+            else:
+                comps = []
+                for _ in range(num_comp):
+                    comp = byte_data[offset]
+                    comps.append(comp)
+                    offset += 1
+                return comps
+        elif self.value in (IFDFormat.UShort[0], IFDFormat.Short[0]):
+            if num_comp == 1:
+                comp = reader.bytes2uint16(byte_data[offset:offset+2])
+                return comp
+            else:
+                comps = []
+                for _ in range(num_comp):
+                    comp = reader.bytes2uint16(byte_data[offset:offset+2])
+                    comps.append(comp)
+                    offset += 2
+                return comps
+        elif self.value in (IFDFormat.ULong[0], IFDFormat.Long[0]):
+            if num_comp == 1:
+                comp = reader.bytes2uint32(byte_data[offset:offset+4])
+                return comp
+            else:
+                comps = []
+                for _ in range(num_comp):
+                    comp = reader.bytes2uint32(byte_data[offset:offset+4])
+                    comps.append(comp)
+                    offset += 4
+                return comps
+        elif self.value in (IFDFormat.URational[0], IFDFormat.Rational[0]):
+            if num_comp == 1:
+                numerator = reader.bytes2uint32(byte_data[offset:offset+4])
+                denominator = reader.bytes2uint32(byte_data[offset+4:offset+8])
+                comp = fractions.Fraction(numerator, denominator)
+                return comp
+            else:
+                comps = []
+                for _ in range(num_comp):
+                    numerator = reader.bytes2uint32(byte_data[offset:offset+4])
+                    denominator = reader.bytes2uint32(byte_data[offset+4:offset+8])
+                    comp = fractions.Fraction(numerator, denominator)
+                    comps.append(comp)
+                    offset += 8  # point to next data
+                return comps
+        elif self.value == IFDFormat.ASCII[0]:
+            comps = byte_data[offset:offset+num_comp]
+            comps = comps[:comps.find(b'\x00')].decode('ascii')
+        elif self.value == IFDFormat.Undefined[0]:
+            comps = byte_data[offset:offset+num_comp]
+        else:
+            comp = None  # FIXME: handle Float, Double
+        return comps
+
+
+class IFDType(object):
+    TAGS = {
+        ## tags in IFD
+        # Tags relating to image data structure
+        0x0100: ('ImageWidth', 'Image width'),
+        0x0101: ('ImageLength', 'Image height'),
+        0x0102: ('BitsPerSample', 'Number of bits per component'),
+        0x0103: ('Compression', 'Compression scheme'),
+        0x0106: ('PhotometricInterpretation', 'Pixel composition'),
+        0x0112: ('Orientation', 'Orientation of image'),
+        0x0115: ('SamplesPerPixel', 'Number of components'),
+        0x011c: ('PlanarConfiguration', 'Image data arrangement'),
+        0x0212: ('YCbCrSubSampling', 'Subsampling ratio of Y to C'),
+        0x0213: ('YCbCrPositioning', 'Y and C positioning'),
+        0x011a: ('XResolution', 'Image resolution in width direction'),
+        0x011b: ('YResolution', 'Image resolution in height direction'),
+        0x0128: ('ResolutionUnit', 'Unit of X and Y resolution'),
+        # Tags relating to recording offset
+        0x0111: ('StripOffsets', 'Image data location'),
+        0x0116: ('RowsPerStrip', 'Number of rows per strip'),
+        0x0117: ('StripByteCounts', 'Bytes per compressed strip'),
+        0x0201: ('JPEGInterchangeFormat', 'Offset to JPEG SOI'),
+        0x0202: ('JPEGInterchangeFormatLength', 'Bytes of JPEG data'),
+        # Tags relating to image data characteristics
+        0x012d: ('TransferFunction', 'Transfer function'),
+        0x013e: ('WhitePoint', 'White point chromaticity'),
+        0x013f: ('PrimaryChromaticities', 'Chromaticities of primaries'),
+        0x0211: ('YCbCrCoefficients', 'Color space transformation matrix coefficients'),
+        0x0214: ('ReferenceBlackWhite', 'Pair of black and white reference values'),
+        # Other tags
+        0x0132: ('DateTime', 'File change date and time'),
+        0x010e: ('ImageDescription', 'Image title'),
+        0x010f: ('Make', 'Image input equipment manufacturer'),
+        0x0110: ('Model', 'Image input equipment model'),
+        0x0131: ('Software', 'Software used'),
+        0x013b: ('Artist', 'Person who created the image'),
+        0x8298: ('Copyright', 'Copyright holder'),
+        # pointer to other IFDs
+        0x8769: ('ExifOffset', ''),
+        0x8825: ('GPSInfo', ''),
+
+        ## tags in Exif IFD
+        # Tags Relating to Version
+        0x9000: ('ExifVersion', 'Exif version'),
+        0xa000: ('FlashpixVersion', 'Supported Flashpix version'),
+        # Tag Relating to Image Data Characteristics
+        0xa001: ('ColorSpace', 'Color space information'),
+        0xa500: ('Gamma', 'Gamma'),
+        # Tags Relating to Image Configuration
+        0x9101: ('ComponentsConfiguration', 'Meaning of each component'),
+        0x9102: ('CompressedBitsPerPixel', 'Image compression mode'),
+        0xa002: ('PixelXDimension', 'Valid image width'),
+        0xa003: ('PixelYDimension', 'Valid image height'),
+        # Tags Relating to User Information
+        0x927c: ('MakerNote', 'Manufacturer notes'),
+        0x9286: ('UserComment', 'User comments'),
+        # Tag Relating to Related File Information
+        0xa004: ('RelatedSoundFile', 'Related audio file'),
+        # Tags Relating to Date and Time
+        0x9003: ('DateTimeOriginal', 'Date and time of original data generation'),
+        0x9004: ('DateTimeDigitized', 'Date and time of digital data generation'),
+        0x9290: ('SubSecTime', 'DateTime subseconds'),
+        0x9291: ('SubSecTimeOriginal', 'DateTimeOriginal subseconds'),
+        0x9292: ('SubSecTimeDigitized', 'DateTimeDigitized subseconds'),
+        # Others Tags
+        0xa420: ('ImageUniqueID', 'Unique image ID'),
+        0xa430: ('CameraOwnerName', 'Camera Owner Name'),
+        0xa431: ('BodySerialNumber', 'Body Serial Number'),
+        0xa432: ('LensSpecification', 'Lens Specification'),
+        0xa433: ('LensMake', 'Lens Make'),
+        0xa434: ('LensModel', 'Lens Model'),
+        0xa435: ('LensSerialNumber', 'Lens Serial Number'),
+        # Tags Relating to Picture-Taking Conditions
+        0x829a: ('ExposureTime', 'Exposure time'),
+        0x829d: ('FNumber', 'F number'),
+        0x8822: ('ExposureProgram', 'Exposure program'),
+        0x8824: ('SpectralSensitivity', 'Spectral sensitivity'),
+        0x8827: ('PhotographicSensitivity', 'Photographic Sensitivity'),
+        0x8828: ('OECF', 'Optoelectric conversion factor'),
+        0x8830: ('SensitivityType', 'Sensitivity Type'),
+        0x8831: ('StandardOutputSensitivity', 'Standard Output Sensitivity'),
+        0x8832: ('RecommendedExposureIndex', 'Recommended ExposureIndex'),
+        0x8833: ('ISOSpeed', 'ISO Speed'),
+        0x8834: ('ISOSpeedLatitudeyyy', 'ISO Speed Latitude yyy'),
+        0x8835: ('ISOSpeedLatitudezzz', 'ISO Speed Latitude zzz'),
+        0x9201: ('ShutterSpeedValue', 'Shutter speed'),
+        0x9202: ('ApertureValue', 'Aperture'),
+        0x9203: ('BrightnessValue', 'Brightness'),
+        0x9204: ('ExposureBiasValue', 'Exposure bias'),
+        0x9205: ('MaxApertureValue', 'Maximum lens aperture'),
+        0x9206: ('SubjectDistance', 'Subject distance'),
+        0x9207: ('MeteringMode', 'Metering mode'),
+        0x9208: ('LightSource', 'Light source'),
+        0x9209: ('Flash', 'Flash'),
+        0x920a: ('FocalLength', 'Lens focal length'),
+        0x9214: ('SubjectArea', 'Subject area'),
+        0xa20b: ('FlashEnergy', 'Flash energy'),
+        0xa20c: ('SpatialFrequencyResponse', 'Spatial frequency response'),
+        0xa20e: ('FocalPlaneXResolution', 'Focal plane X resolution'),
+        0xa20f: ('FocalPlaneYResolution', 'Focal plane Y resolution'),
+        0xa210: ('FocalPlaneResolutionUnit', 'Focal plane resolution unit'),
+        0xa214: ('SubjectLocation', 'Subject location'),
+        0xa215: ('ExposureIndex', 'Exposure index'),
+        0xa217: ('SensingMethod', 'Sensing method'),
+        0xa300: ('FileSource', 'File source'),
+        0xa301: ('SceneType', 'Scene type'),
+        0xa302: ('CFAPattern', 'CFA pattern'),
+        0xa401: ('CustomRendered', 'Custom image processing'),
+        0xa402: ('ExposureMode', 'Exposure mode'),
+        0xa403: ('WhiteBalance', 'White balance'),
+        0xa404: ('DigitalZoomRatio', 'Digital zoom ratio'),
+        0xa405: ('FocalLengthIn35mmFilm', 'Focal length in 35 mm film'),
+        0xa406: ('SceneCaptureType', 'Scene capture type'),
+        0xa407: ('GainControl', 'Gain control'),
+        0xa408: ('Contrast', 'Contrast'),
+        0xa409: ('Saturation', 'Saturation'),
+        0xa40a: ('Sharpness', 'Sharpness'),
+        0xa40b: ('DeviceSettingDescription', 'Device settings description'),
+        0xa40c: ('SubjectDistanceRange', 'Subject distance range'),
+
+        ## tags in GPS Info IFD
+        0x0000: ('GPSVersionID', 'GPS tag version'),
+        0x0001: ('GPSLatitudeRef', 'North or South Latitude'),
+        0x0002: ('GPSLatitude', 'Latitude'),
+        0x0003: ('GPSLongitudeRef', 'East or West Longitude'),
+        0x0004: ('GPSLongitude', 'Longitude'),
+        0x0005: ('GPSAltitudeRef', 'Altitude reference'),
+        0x0006: ('GPSAltitude', 'Altitude'),
+        0x0007: ('GPSTimeStamp', 'GPS time (atomic clock)'),
+        0x0008: ('GPSSatellites', 'GPS satellites used for measurement'),
+        0x0009: ('GPSStatus', 'GPS receiver status'),
+        0x000a: ('GPSMeasureMode', 'GPS measurement mode'),
+        0x000b: ('GPSDOP', 'Measurement precision'),
+        0x000c: ('GPSSpeedRef', 'Speed unit'),
+        0x000d: ('GPSSpeed', 'Speed of GPS receiver'),
+        0x000e: ('GPSTrackRef', 'Reference for direction of movement'),
+        0x000f: ('GPSTrack', 'Direction of movement'),
+        0x0010: ('GPSImgDirectionRef', 'Reference for direction of image'),
+        0x0011: ('GPSImgDirection', 'Direction of image'),
+        0x0012: ('GPSMapDatum', 'Geodetic survey data used'),
+        0x0013: ('GPSDestLatitudeRef', 'Reference for latitude of destination'),
+        0x0014: ('GPSDestLatitude', 'Latitude of destination'),
+        0x0015: ('GPSDestLongitudeRef', 'Reference for longitude of destination'),
+        0x0016: ('GPSDestLongitude', 'Longitude of destination'),
+        0x0017: ('GPSDestBearingRef', 'Reference for bearing of destination'),
+        0x0018: ('GPSDestBearing', 'Bearing of destination'),
+        0x0019: ('GPSDestDistanceRef', 'Reference for distance to destination'),
+        0x001a: ('GPSDestDistance', 'Distance to destination'),
+        0x001b: ('GPSProcessingMethod', 'Name of GPS processing method'),
+        0x001c: ('GPSAreaInformation', 'Name of GPS area'),
+        0x001d: ('GPSDateStamp', 'GPS date'),
+        0x001e: ('GPSDifferential', 'GPS differential correction'),
+        0x001f: ('GPSHPositioningError', 'Horizontal positioning error'),
+    }
+
+    def __init__(self, _type):
+        try:
+            self.id = _type
+            self.name, self.description = self.TAGS[_type]
+        except KeyError:
+            self.id = _type
+            self.name = '<Unknown>'
+            self.description = None
+
+    def __str__(self):
+        if self.name != '<Unknown>':
+            return self.name
+        else:
+            return '<Unknown: 0x%x>' % self.id
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class IFD(object):
+    @classmethod
+    def from_bytes(cls, reader, byte_data, offset, num):
+        self = cls()
+        if num is not None:
+            ifds = [('IFD%d' % num, self)]
+        # num of entries
+        self.num_entries = reader.bytes2uint16(byte_data[offset:offset+2])
+        self.entries = []
+        index = offset + 2
+        for i in range(self.num_entries):
+            _type = IFDType(reader.bytes2uint16(byte_data[index:index+2]))
+            fmt = IFDFormat(reader.bytes2uint16(byte_data[index+2:index+4]))
+            ncomp = reader.bytes2uint32(byte_data[index+4:index+8])
+            total_nbytes = fmt.nbytes*ncomp
+            if total_nbytes > 4:  # next 4 bytes is a pointer to the true comp
+                comp_offset = reader.bytes2uint32(byte_data[index+8:index+12])
+                comps = fmt.get_comp(reader, byte_data, comp_offset, ncomp)
+                # print(_type, fmt, ncomp, '%s @ %s' % (comps, hex(comp_offset)))
+            else:  # next 4 bytes store the comp
+                comps = fmt.get_comp(reader, byte_data, index+8, ncomp)
+                # print(_type, fmt, ncomp, comps)
+            self.entries.append(
+                (_type, fmt, ncomp, comps)
+            )
+            index += 12
+
+            if _type.id == 0x8769:  # Exif子IFD
+                _, exif_ifd = IFD.from_bytes(reader, byte_data, offset=comps, num=None)
+                ifds.append(('ExifIFD', exif_ifd))
+            elif _type.id == 0x8825:  # GPSInfo
+                _, GPSInfo = IFD.from_bytes(reader, byte_data, offset=comps, num=None)
+                ifds.append(('GPSInfo', GPSInfo))
+
+        # offset to next IFD
+        offset = reader.bytes2uint32(byte_data[index:index+4])
+        if num is not None:
+            return offset, ifds
+        else:
+            return offset, self
+
+    def iter_entries(self):
+        for entry in self.entries:
+            yield entry
+
+
+class TIFF(object):
+
+    @classmethod
+    def from_bytes(cls, byte_data):
+        self = cls()
+        self.header = byte_data[:8]
+        if self.header[:2] == b'II':
+            reader = BytesReader(BytesReader.LITTLE_ENDIAN)
+        elif self.header[:2] == b'MM':
+            reader = BytesReader(BytesReader.BIG_ENDIAN)
+        else:
+            pass  # FIXME: broken data
+        self.tag = reader.bytes2uint16(self.header[2:4])
+        self.ifds = []
+        # offset to IFD0
+        num = 0
+        offset = reader.bytes2uint32(self.header[4:8])
+        while offset != 0:
+            offset, ifds = IFD.from_bytes(reader, byte_data, offset, num)
+            self.ifds.extend(ifds)
+            num += 1
+        return self
+
+    def iter_IFDs(self):
+        for ifd in self.ifds:
+            yield ifd
