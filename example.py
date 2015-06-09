@@ -19,8 +19,8 @@ print(img.comp_infos)
 # 量化表
 print(img.quant_tbls)
 # 哈夫曼表
-print(img.ac_huff_tables)
-print(img.dc_huff_tables)
+print(img.ac_huff_tbls)
+print(img.dc_huff_tbls)
 # 文件名
 print(img.filename)
 # (width, height)

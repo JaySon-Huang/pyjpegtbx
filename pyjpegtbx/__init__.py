@@ -92,7 +92,7 @@ class JPEGImage(object):
                 obj.quant_tbls.append(tbl)
 
         # 哈夫曼表
-        obj.dc_huff_tbl = []
+        obj.dc_huff_tbls = []
         for huff_tbl_ptr in cinfo.dc_huff_tbl_ptrs:
             tbl = {}
             try:
@@ -101,8 +101,8 @@ class JPEGImage(object):
             except ValueError:
                 pass
             else:
-                obj.dc_huff_tbl.append(tbl)
-        obj.ac_huff_tbl = []
+                obj.dc_huff_tbls.append(tbl)
+        obj.ac_huff_tbls = []
         for huff_tbl_ptr in cinfo.ac_huff_tbl_ptrs:
             tbl = {}
             try:
@@ -111,7 +111,7 @@ class JPEGImage(object):
             except ValueError:
                 pass
             else:
-                obj.ac_huff_tbl.append(tbl)
+                obj.ac_huff_tbls.append(tbl)
 
         # DCT/RGB data
         obj.mode = mode
