@@ -543,7 +543,10 @@ class IFDFormat(object):
                 return comps
         elif self.value == IFDFormat.ASCII[0]:
             comps = byte_data[offset:offset+num_comp]
-            comps = comps[:comps.find(b'\x00')].decode('ascii')
+            try:
+                comps = comps[:comps.find(b'\x00')].decode('ascii')
+            except UnicodeDecodeError:
+                pass
         elif self.value == IFDFormat.Undefined[0]:
             comps = byte_data[offset:offset+num_comp]
         else:
@@ -591,6 +594,10 @@ class IFDType(object):
         # pointer to other IFDs
         0x8769: ('ExifOffset', ''),
         0x8825: ('GPSInfo', ''),
+        0x0302: ('ICC Profile Descriptor', ''),
+        0x5110: ('PixelUnit', ''),
+        0x5111: ('PixelPerUnitX', ''),
+        0x5112: ('PixelPerUnitY', ''),
 
         ## tags in Exif IFD
         # Tags Relating to Version
