@@ -310,6 +310,9 @@ class JPEGImage(object):
         jfuncs['jFinCompress'](ctypes.byref(cinfo))
         jfuncs['jDestCompress'](ctypes.byref(cinfo))
         cfclose(fp)
+        # update filename, filepath
+        self.filename = os.path.basename(filepath)
+        self.filepath = filepath
 
     def save2Bytes(self, quality=75):
         cinfo = jpeg_compress_struct()
