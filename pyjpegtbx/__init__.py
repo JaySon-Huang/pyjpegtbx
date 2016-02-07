@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#encoding=utf-8
+# encoding=utf-8
 
 import os
 import ctypes
@@ -352,7 +352,6 @@ class JPEGImage(object):
         if self._app is None:
             self.get_app()
 
-        # import ipdb;ipdb.set_trace();
         self._exif = {}
         for _, app in self._app:
             if app.startswith(b'Exif'):

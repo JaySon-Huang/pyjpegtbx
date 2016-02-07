@@ -2,6 +2,7 @@
 #encoding=utf-8
 
 import ctypes
+import platform
 from .structs import (
     jmp_buf, jpeg_error_mgr, j_decompress_ptr, j_compress_ptr,
     JSAMPARRAY, jvirt_barray_ptr
@@ -15,7 +16,7 @@ __all__ = [
 ]
 
 _all_libs = (
-    ('jpeg.dll', 'libjpeg.so', 'libjpeg.dylib'),
+    ('libjpeg.dll', 'libjpeg.so', 'libjpeg.dylib'),
     ('c.dll', 'libc.so', 'libc.dylib'),
 )
 
@@ -31,8 +32,12 @@ def __loadLib(liblst):
             pass
     if not found:
         raise ImportError("ERROR: fail to load the dynamic library.")
-_jpeg = __loadLib(_all_libs[0])
-_c = __loadLib(_all_libs[1])
+if platform.system() == "Windows":
+    _jpeg = ctypes.CDLL("libjpeg")
+    _c = ctypes.cdll.msvcrt
+else:
+    _jpeg = __loadLib(_all_libs[0])
+    _c = __loadLib(_all_libs[1])
 
 
 def jround_up(a, b):
@@ -48,12 +53,12 @@ cfclose = _c.fclose
 cfclose.restype = None
 cfclose.argtypes = (ctypes.c_void_p, )
 
-csetjmp = _c.setjmp
-csetjmp.restype = ctypes.c_int
-csetjmp.argtypes = (jmp_buf, )
-clongjmp = _c.longjmp
-clongjmp.restype = None
-clongjmp.argtypes = (jmp_buf, ctypes.c_int)
+# csetjmp = _c.setjmp
+# csetjmp.restype = ctypes.c_int
+# csetjmp.argtypes = (jmp_buf, )
+# clongjmp = _c.longjmp
+# clongjmp.restype = None
+# clongjmp.argtypes = (jmp_buf, ctypes.c_int)
 
 jfuncs = {}
 
