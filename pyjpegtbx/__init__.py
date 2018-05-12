@@ -168,7 +168,7 @@ class JPEGImage(object):
     def copy(self):
         return deepcopy(self)
 
-    def __setcinfo(self, cinfo):
+    def __setcinfo(self, cinfo, quality):
         cinfo.image_width, cinfo.image_height = self.size
         if self.mode == JPEGImage.MODE_RGB:
             cinfo.input_components = 3  # 3 for R,G,B
@@ -305,7 +305,7 @@ class JPEGImage(object):
         )
         fp = cfopen(filepath.encode(), b'wb')
         jfuncs['jStdDest'](ctypes.byref(cinfo), fp)
-        self.__setcinfo(cinfo)
+        self.__setcinfo(cinfo, quality)
         # release resources
         jfuncs['jFinCompress'](ctypes.byref(cinfo))
         jfuncs['jDestCompress'](ctypes.byref(cinfo))
@@ -330,7 +330,7 @@ class JPEGImage(object):
             ctypes.byref(outbuffer),
             ctypes.byref(outsize)
         )
-        self.__setcinfo(cinfo)
+        self.__setcinfo(cinfo, quality)
         # release resources
         jfuncs['jFinCompress'](ctypes.byref(cinfo))
         jfuncs['jDestCompress'](ctypes.byref(cinfo))
