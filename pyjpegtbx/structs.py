@@ -47,6 +47,10 @@ class J_COLOR_SPACE(object):
 
 
 class jpeg_error_mgr(ctypes.Structure):
+    '''
+    Error handler object
+    Note. assign to `jpeg_error_mgr._fields_` later on this file.
+    '''
     pass
 
 
@@ -201,6 +205,9 @@ class jpeg_compress_struct(ctypes.Structure):
         ('Y_density', ctypes.c_uint16),
         ('write_Adobe_marker', boolean),
 
+        # added by libjpeg-9, Color transform identifier, writes LSE marker if nonzero
+        ('color_transform', ctypes.c_int),
+
         ('next_scanline', ctypes.c_uint),
 
         ('progressive_mode', boolean),
@@ -336,6 +343,9 @@ class jpeg_decompress_struct(ctypes.Structure):
         ('saw_Adobe_marker', boolean),
         ('Adobe_transform', ctypes.c_uint8),
 
+        # added by libjpeg-9, Color transform identifier derived from LSE marker, otherwise zero
+        ('color_transform', ctypes.c_int),
+
         ('CCIR601_sampling', boolean),
 
         ('marker_list', ctypes.c_void_p),
@@ -468,18 +478,23 @@ class msg_parm(ctypes.Union):
 jpeg_error_mgr._fields_ = (
     ('error_exit', ERROR_EXIT_FUNC),
     ('emit_message', ctypes.c_void_p),
-    ('output_message', ctypes.c_void_p),
+    ('output_message', ctypes.CFUNCTYPE(None, j_common_ptr)),
     ('format_message', ctypes.c_void_p),
     ('reset_error_mgr', ctypes.c_void_p),
+
     ('msg_code', ctypes.c_int),
     ('msg_parm', msg_parm),
+
     ('trace_level', ctypes.c_int),
     ('num_warnings', ctypes.c_long),
+
     ('jpeg_message_table', ctypes.POINTER(ctypes.c_char_p)),
     ('last_jpeg_message', ctypes.c_int),
+
     ('addon_message_table', ctypes.POINTER(ctypes.c_char_p)),
     ('first_addon_message', ctypes.c_int),
     ('last_addon_message', ctypes.c_int),
+
     ('setjmp_buffer', jmp_buf),
 )
 

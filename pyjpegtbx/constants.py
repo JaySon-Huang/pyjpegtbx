@@ -10,7 +10,7 @@ MAX_COMPS_IN_SCAN = 4  # JPEG limit on num of components in one scan
 MAX_SAMP_FACTOR = 4  # JPEG limit on sampling factors
 C_MAX_BLOCKS_IN_MCU = 10  # compressor's limit on blocks per MCU
 D_MAX_BLOCKS_IN_MCU = 10  # decompressor's limit on blocks per MCU
-JPEG_LIB_VERSION = 80  # Compatibility version 8.0
+JPEG_LIB_VERSION = 90  # Compatibility version 9.0
 JPOOL_IMAGE = 1
 
 from .structs import J_COLOR_SPACE
