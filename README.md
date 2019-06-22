@@ -5,8 +5,7 @@
 
 ## 开发环境
 * Mac OS X
-* python2
-* gcc+llvm
+* python3
 * libjpeg 9c
 
 ### 准备开发环境
@@ -35,16 +34,16 @@
     >>> # True(default) for reading DCT data
     >>> img = JPEGImage('lfs.jpg')
     >>> # components' info
-    >>> print img.comp_infos
+    >>> print(img.comp_infos)
     >>> # quality tables
-    >>> print img.quant_tbls
+    >>> print(img.quant_tbls)
     >>> # huffman tables
-    >>> print img.ac_huff_tables
-    >>> print img.dc_huff_tables
-    >>> print img.filename
-    >>> print img.size # (width, height)
+    >>> print(img.ac_huff_tables)
+    >>> print(img.dc_huff_tables)
+    >>> print(img.filename)
+    >>> print(img.size) # (width, height)
     >>> # DCT data now is in img.data
-    >>> # print img.data
+    >>> # print(img.data)
     >>> # set some of DCT data to zero
     >>> for key, val in img.data.items():
     >>>     for coef in val:
@@ -68,18 +67,18 @@
     >>> # 第二个参数默认为True, 表示读取DCT数据
     >>> img = JPEGImage('lfs.jpg')
     >>> # 查看颜色分量信息
-    >>> print img.comp_infos
+    >>> print(img.comp_infos)
     >>> # 量化表
-    >>> print img.quant_tbls
+    >>> print(img.quant_tbls)
     >>> # 哈夫曼表
-    >>> print img.ac_huff_tables
-    >>> print img.dc_huff_tables
+    >>> print(img.ac_huff_tables)
+    >>> print(img.dc_huff_tables)
     >>> # 文件名
-    >>> print img.filename
+    >>> print(img.filename
     >>> # (width, height)
-    >>> print img.size
+    >>> print(img.size)
     >>> # DCT数据信息
-    >>> # print img.data
+    >>> # print(img.data)
     >>> # 把高频DCT系数设置为0
     >>> for key, val in img.data.items():
     >>>     for coef in val:
