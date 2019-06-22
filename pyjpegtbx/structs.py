@@ -10,19 +10,32 @@ from .constants import (
 from .utils import BytesReader
 
 boolean = ctypes.c_int
+# Representation of a single sample (pixel element value). defined in `jmorecfg.h`
 JSAMPLE = ctypes.c_char
+# Representation of a DCT frequency coefficient. defined in `jmorecfg.h`
+JCOEF = ctypes.c_short
+
+## defined in `jpeglib.h`
+# ptr to one image row of pixel samples. 
 JSAMPROW = ctypes.POINTER(JSAMPLE)
+# ptr to some rows (a 2-D sample array).
 JSAMPARRAY = ctypes.POINTER(JSAMPROW)
 
-JCOEF = ctypes.c_short
+# one block of coefficients 
 JBLOCK = JCOEF * DCTSIZE2
 JBLOCK.__repr__ = lambda self: 'JBLOCK @ %x' % ctypes.addressof(self)
+# pointer to one row of coefficient blocks
 JBLOCKROW = ctypes.POINTER(JBLOCK)
+# a 2-D array of coefficient blocks
 JBLOCKARRAY = ctypes.POINTER(JBLOCKROW)
+
 jmp_buf = ctypes.c_int * 37
 
 
 class J_COLOR_SPACE(object):
+    '''
+    enum of color space. defined in `jpeglib.h`
+    '''
     JCS_UNKNOWN = 0     # error/unspecified
     JCS_GRAYSCALE = 1   # monochrome
     JCS_RGB = 2         # red/green/blue, standard RGB (sRGB)
@@ -42,6 +55,9 @@ class jpeg_memory_mgr(ctypes.Structure):
 
 
 class JQUANT_TBL(ctypes.Structure):
+    '''
+    DCT coefficient quantization tables.
+    '''
     _fields_ = (
         ('quantval', ctypes.c_uint16 * DCTSIZE2),
         ('sent_table', boolean),
@@ -49,6 +65,9 @@ class JQUANT_TBL(ctypes.Structure):
 
 
 class JHUFF_TBL(ctypes.Structure):
+    '''
+    Huffman coding tables.
+    '''
     _fields_ = (
         ('bits', ctypes.c_uint8 * 17),
         ('huffval', ctypes.c_uint8 * 256),
@@ -57,6 +76,9 @@ class JHUFF_TBL(ctypes.Structure):
 
 
 class jpeg_component_info(ctypes.Structure):
+    '''
+    Basic info about one component (color channel).
+    '''
     _fields_ = (
         ('component_id', ctypes.c_int),
         ('component_index', ctypes.c_int),
@@ -98,6 +120,9 @@ class jpeg_component_info(ctypes.Structure):
 
 
 class jpeg_common_struct(ctypes.Structure):
+    '''
+    Common fields between JPEG compression and decompression master structs.
+    '''
     _fields_ = (
         ('err', ctypes.POINTER(jpeg_error_mgr)),
         ('mem', ctypes.POINTER(jpeg_memory_mgr)),
@@ -110,6 +135,9 @@ j_common_ptr = ctypes.POINTER(jpeg_common_struct)
 
 
 class jpeg_compress_struct(ctypes.Structure):
+    '''
+    Master record for a compression instance
+    '''
     _fields_ = (
         ('err', ctypes.POINTER(jpeg_error_mgr)),
         ('mem', ctypes.POINTER(jpeg_memory_mgr)),
@@ -218,6 +246,9 @@ j_compress_ptr = ctypes.POINTER(jpeg_compress_struct)
 
 
 class jpeg_decompress_struct(ctypes.Structure):
+    '''
+    Master record for a decompression instance
+    '''
     _fields_ = (
         ('err', ctypes.POINTER(jpeg_error_mgr)),
         ('mem', ctypes.POINTER(jpeg_memory_mgr)),
@@ -356,6 +387,13 @@ j_decompress_ptr = ctypes.POINTER(jpeg_decompress_struct)
 
 
 class backing_store_info(ctypes.Structure):
+    '''
+    This structure holds whatever state is needed to access a single
+    backing-store object.  The read/write/close method pointers are called
+    by jmemmgr.c to manipulate the backing-store object; all other fields
+    are private to the system-dependent backing store routines.
+    defined in `jmemsys.h`
+    '''
     _fields_ = (
         ('read_backing_store', ctypes.c_void_p),
         ('write_backing_store', ctypes.c_void_p),
