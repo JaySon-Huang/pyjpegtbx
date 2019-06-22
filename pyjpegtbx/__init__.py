@@ -2,6 +2,7 @@
 # encoding=utf-8
 
 import os
+import sys
 import ctypes
 from copy import deepcopy
 
@@ -26,7 +27,9 @@ __all__ = [
 
 
 def py_error_exit(cinfo):
-    print('in calling error_exit')
+    print('in calling error_exit, err msg: ', end='', file=sys.stderr)
+    sys.stderr.flush()
+    cinfo.contents.err.contents.output_message(cinfo)
 error_exit = ERROR_EXIT_FUNC(py_error_exit)
 
 

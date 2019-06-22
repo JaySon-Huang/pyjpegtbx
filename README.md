@@ -7,7 +7,7 @@
 * Mac OS X
 * python2
 * gcc+llvm
-* libjpeg 8d
+* libjpeg 9c
 
 ### 准备开发环境
 `Mac OS X`:
