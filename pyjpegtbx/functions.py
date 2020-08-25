@@ -17,7 +17,7 @@ __all__ = [
 
 _all_libs = (
     ('libjpeg.dll', 'libjpeg.so', 'libjpeg.dylib'),
-    ('c.dll', 'libc.so', 'libc.dylib'),
+    ('c.dll', 'libc.so', 'libc.dylib', 'libc.so.6'),
 )
 
 
@@ -31,7 +31,7 @@ def __loadLib(liblst):
         except OSError:
             pass
     if not found:
-        raise ImportError("ERROR: fail to load the dynamic library.")
+        raise ImportError("ERROR: fail to load the dynamic library:", liblst)
 if platform.system() == "Windows":
     _jpeg = ctypes.CDLL("libjpeg")
     _c = ctypes.cdll.msvcrt
